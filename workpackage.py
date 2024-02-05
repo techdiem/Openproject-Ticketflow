@@ -3,27 +3,36 @@ import json
 from config import config
 
 class Workpackage():
-    def __init__(self, message) -> None:
-        self.message = message
+    def __init__(self, title, text) -> None:
         self.id = None
-        text = f"Absender: {message.sender}\n---------------\n{message.body}"
-        self.parameters = {"subject": message.subject, 
+        self.title = title
+        self.text = text
+        self._base_url = config.get("OpenProject", "base_url")
+
+        #Detect subfolder in base URL
+        url_parts = self._base_url.split("/")
+        if (len(url_parts) > 3):
+            self._install_subfolder = f"/{url_parts[2]}"
+        else:
+            self._install_subfolder = ""
+
+        self.parameters = {"subject": self.title, 
                 "description": {
                 "format": "textile",
-                "raw": text
+                "raw": self.text
             },"_links": {
                 "type": {
-                "href": "/openproject/api/v3/types/8"
+                "href": f"{self._install_subfolder}/api/v3/types/{config.get('OpenProject', 'ticket_type_id')}"
                 },
                 "status": {
-                "href": "/openproject/api/v3/statuses/1"
+                "href": f"{self._install_subfolder}/api/v3/statuses/{config.get('OpenProject', 'ticket_status_id')}"
                 },
                 "priority": {
-                "href": "/openproject/api/v3/priorities/8"
+                "href": f"{self._install_subfolder}/api/v3/priorities/{config.get('OpenProject', 'ticket_prio_id')}"
                 }
             },
             "customField1": {
-                "href": "/openproject/api/v3/custom_options/6"
+                "href": f"{self._install_subfolder}/api/v3/custom_options/{config.get('OpenProject', 'ticket_customField1_id')}"
             }
         } 
 
@@ -38,7 +47,7 @@ class Workpackage():
 
     def publish(self):
         headers = {"Content-type": "application/json"}
-        r = self.post_request("/api/v3/projects/5/work_packages", headers=headers, data=json.dumps(self.parameters))
+        r = self.post_request(f"/api/v3/projects/{config.get('OpenProject', 'ticket_project_id')}/work_packages", headers=headers, data=json.dumps(self.parameters))
         return r
     
     def add_attachment(self, filename, filecontent):

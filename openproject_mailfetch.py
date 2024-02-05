@@ -1,46 +1,41 @@
-import imaplib
-import email
-import os
+from imap_tools import MailBox
 import json
 from config import config
 
-from mail import Mail
 from workpackage import Workpackage
 
+#Connect IMAP
+mailbox = MailBox(config.get("IMAP", "server")).login(config.get("IMAP", "user"), config.get("IMAP", "password"))
 
-#IMAP connection
-mail = imaplib.IMAP4(config.get("IMAP", "server"))
-mail.login(config.get("IMAP", "user"), config.get("IMAP", "password"))
-mail.select()
+for msg in mailbox.fetch(mark_seen=False):
+    print(f"{msg.date} {msg.subject} | {len(msg.text or msg.html)} Bytes, {len(msg.attachments)} Anhänge")
 
-#Get inbox
-typ, data = mail.search(None, 'ALL')
-
-tickets = []
-
-for num in data[0].split():
-    status, data = mail.fetch(num, '(RFC822)')
-    msg = email.message_from_bytes(data[0][1])
-    message = Mail(msg, num)
-    print(f"Mail von {message.sender}, Betreff: {message.subject}")
-    #Create Workpackage object
-    tickets.append(Workpackage(message))
-
-for ticket in tickets:
-    #Publish work_package and extract id
+    subject = "Kein Titel" if msg.subject == "" else msg.subject
+    message = ""
+    if (len(msg.text) != 0):
+        message = f"Absender: {msg.from_values.full}\n---------\n{msg.text}"
+    elif (len(msg.html) != 0):
+        message = f"Absender: {msg.from_values.full}\n---------\n{msg.html}"
+    else:
+        message = f"Absender: {msg.from_values.full}\n---------\nKein Text"
+    ticket = Workpackage(subject, message)
     result = ticket.publish()
     try:
         ticket.id = json.loads(result.content)["id"]
-        print("Ticket erstellt: ", ticket.id)
+        print(f"Ticket {ticket.title} erstellt, ID {ticket.id}")
     except:
-        print(f"Fehler beim Erstellen eines Arbeitspaketes!\n\n{result.content}")
+        print(f"Fehler beim Erstellen des Arbeitspaketes {ticket.title}!\n{result.content}")
     else:
-        #Delete Mail
-        mail.store(ticket.message.imappointer, "+FLAGS", "\\Deleted")
         #Save attachments
-        for attachment in ticket.message.attachments:
-            ticket.add_attachment(attachment[0], attachment[1])
+        for attachment in msg.attachments:
+            print(f"Anhang {attachment.filename} vom Typ {attachment.content_type} gefunden.")
+            try:
+                result = ticket.add_attachment(attachment.filename, attachment.payload)
+            except:
+                print(f"Fehler beim hinzufügen des Anhangs {attachment.filename}!\n{result.content}")
+                break
+        #Delete Mail
+        #mailbox.delete(msg.uid)
 
-#Logout mail
-mail.close()
-mail.logout()
+#Close IMAP connection
+mailbox.client.close()
