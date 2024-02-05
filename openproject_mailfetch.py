@@ -35,7 +35,7 @@ for msg in mailbox.fetch(mark_seen=False):
                 print(f"Fehler beim hinzufügen des Anhangs {attachment.filename}!\n{result.content}")
                 break
         #Delete Mail
-        #mailbox.delete(msg.uid)
+        mailbox.delete(msg.uid)
 
 #Close IMAP connection
 mailbox.client.close()
