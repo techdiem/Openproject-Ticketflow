@@ -1,12 +1,14 @@
 import requests
 import json
 from config import config
+from markdownify import markdownify as md
 
 class Workpackage():
-    def __init__(self, title, text) -> None:
+    def __init__(self, title, text, text_format="textile") -> None:
         self.id = None
         self.title = title
         self.text = text
+        self.text_format = text_format
         self._base_url = config.get("OpenProject", "base_url")
 
         #Detect subfolder in base URL
@@ -18,8 +20,7 @@ class Workpackage():
 
         self.parameters = {"subject": self.title, 
                 "description": {
-                "format": "textile",
-                "raw": self.text
+                "format": "markdown",
             },"_links": {
                 "type": {
                 "href": f"{self._install_subfolder}/api/v3/types/{config.get('OpenProject', 'ticket_type_id')}"
@@ -34,7 +35,12 @@ class Workpackage():
             "customField1": {
                 "href": f"{self._install_subfolder}/api/v3/custom_options/{config.get('OpenProject', 'ticket_customField1_id')}"
             }
-        } 
+        }
+        
+        if(text_format == "html"):
+            self.parameters["description"]["raw"] = md(self.text)
+        else:
+            self.parameters["description"]["raw"] = self.text
 
     def post_request(self, context, data=None, files=None, headers=None):
         r = requests.post(f'{config.get("OpenProject", "base_url")}{context}', 
