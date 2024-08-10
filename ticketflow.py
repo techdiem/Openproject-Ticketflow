@@ -3,11 +3,12 @@
 #
 
 from processes.mailprocess import mail_process
-from processes.notificationprocess import notification_process
+from processes.notificationprocess import NotificationProcess
 
 def main():
     mail_process()
-    notification_process()
+    notificationProcess = NotificationProcess
+    notificationProcess.run()
 
 if __name__ == "__main__":
     main()
