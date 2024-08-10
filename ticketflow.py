@@ -2,11 +2,12 @@
 # OpenProject-Ticketflow
 #
 
-from processes.mailprocess import mail_process
+from processes.mailprocess import MailProcess
 from processes.notificationprocess import NotificationProcess
 
 def main():
-    mail_process()
+    mailProcess = MailProcess()
+    mailProcess.run()
     notificationProcess = NotificationProcess
     notificationProcess.run()
 
