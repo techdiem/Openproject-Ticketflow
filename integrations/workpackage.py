@@ -57,9 +57,12 @@ class Workpackage():
     @staticmethod
     def getByID(workpackage_id):
         result = get_request(f"/api/v3/work_packages/{workpackage_id}")
-        data = json.loads(result.content)
-        ticket = Workpackage(data["subject"],
-                             data["description"]["raw"],
-                             data[config.get("OpenProject", "ticket_usermail_field")],
-                             id=data["id"])
-        return ticket
+        if result.status_code == 200:
+            data = json.loads(result.content)
+            ticket = Workpackage(data["subject"],
+                                data["description"]["raw"],
+                                data[config.get("OpenProject", "ticket_usermail_field")],
+                                id=data["id"])
+            return ticket
+        else:
+            return None
