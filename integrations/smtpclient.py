@@ -18,8 +18,9 @@ class SMTPClient():
         text = content_plain
         html = content_html
 
-        part1 = MIMEText(text.encode('utf-8'), 'plain', 'utf-8')
-        msg.attach(part1)
+        if text != "":
+            part1 = MIMEText(text.encode('utf-8'), 'plain', 'utf-8')
+            msg.attach(part1)
         if html != "":
             part2 = MIMEText(html.encode('utf-8'), 'html', 'utf-8')
             msg.attach(part2)
