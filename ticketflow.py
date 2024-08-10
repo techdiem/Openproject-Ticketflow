@@ -3,6 +3,8 @@ import json
 from config import config
 from markdown import markdown
 from bs4 import BeautifulSoup
+from mailparser_reply import EmailReplyParser
+import re
 from integrations.workpackage import Workpackage
 from integrations.imapclient import IMAPClient
 from integrations.comment import Comment
@@ -36,7 +38,21 @@ newmails = imapclient.check_mail()
 
 for mail in newmails:
     try:
-        create_workpackage(mail[1], mail[2], mail[3], mail[4], mail[5])
+        #Search for opid in subject
+        opid = re.search(r"\[OP#(\d+)\]", mail[1])
+        if opid != None:
+            #If existent, it is a comment to an existing workpackage
+            ticketid = opid.groups()[0]
+            print(f"Antwort für Ticket #{ticketid} empfangen.")
+            #Remove forwarded or reply mails
+            mail_message = EmailReplyParser(languages=['en', 'de']).read(text=mail[2])
+            comment_text = f"_Antwort von {mail[3].full}:_\n{mail_message.latest_reply}"
+
+            comment = Comment(comment_text)
+            comment.publish(ticketid)
+        else:
+            #If not, create a new workpackage
+            create_workpackage(mail[1], mail[2], mail[3], mail[4], mail[5])
     except Exception as e:
         print("Fehler beim Verarbeiten der Mails: ", e)
     else:
