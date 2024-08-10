@@ -17,3 +17,11 @@ def get_request(context, headers=None, params=None):
                      headers=headers,
                      params=params)
     return r
+
+def patch_request(context, headers=None, data=None):
+    r = requests.patch(f'{config.get("OpenProject", "base_url")}{context}',
+                     auth=('apikey', config.get("OpenProject", "api_key")),
+                     verify=False,
+                     headers=headers,
+                     data=data)
+    return r

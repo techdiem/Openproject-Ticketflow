@@ -4,6 +4,7 @@ import re
 from utils.mail import create_workpackage
 from integrations.imapclient import IMAPClient
 from integrations.workpackage import Workpackage
+from config import config
 
 class MailProcess:
     def run(self):
@@ -27,7 +28,9 @@ class MailProcess:
                         #Remove forwarded or reply mails
                         mail_message = EmailReplyParser(languages=['en', 'de']).read(text=mail.text_plain)
                         comment_text = f"_Antwort von {mail.sender.full}:_\n{mail_message.latest_reply}"
-
+                        #If ticket is closed, set to configured status
+                        if ticket.status == config.get("OpenProject", "ticket_closed_id"):
+                            ticket.set_status(config.get("OpenProject", "ticket_reopen_id"))
                         comment = Comment(comment_text)
                         comment.publish(ticketid)
                     else:
