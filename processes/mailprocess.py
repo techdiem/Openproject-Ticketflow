@@ -7,6 +7,30 @@ from integrations.workpackage import Workpackage
 from config import config
 
 class MailProcess:
+    opid_regex = r"\[OP#(\d+)\]"
+
+    def newComment(self, mail, opid):
+        #If existent, it is a comment to an existing workpackage
+        ticketid = opid.groups()[0]
+        print(f"Antwort für Ticket #{ticketid} empfangen.")
+
+        #Check if ticket exists
+        ticket = Workpackage.getByID(ticketid)
+        if ticket != None:
+            #Remove forwarded or reply mails
+            mail_message = EmailReplyParser(languages=['en', 'de']).read(text=mail.text_plain)
+            comment_text = f"_Antwort von {mail.sender.full}:_\n{mail_message.latest_reply}"
+            #If ticket is closed, set to configured status
+            if ticket.status == config.get("OpenProject", "ticket_closed_id"):
+                ticket.set_status(config.get("OpenProject", "ticket_reopen_id"))
+            comment = Comment(comment_text)
+            comment.publish(ticketid)
+        else:
+            print(f"Kommentar für Ticket #{ticketid} per Mail empfangen, es existiert aber nicht, erstelle neu...")
+            #Remove opid from subject for cleaner ticket title
+            mail.subject = re.sub(f"{self.opid_regex}\s*", "", mail.subject)
+            create_workpackage(mail)
+        
     def run(self):
         print("Verarbeite eingehende Mails via IMAP")
         imapclient = IMAPClient()
@@ -15,29 +39,9 @@ class MailProcess:
         for mail in newmails:
             try:
                 #Search for opid in subject
-                opid_regex = r"\[OP#(\d+)\]"
-                opid = re.search(opid_regex, mail.subject)
+                opid = re.search(self.opid_regex, mail.subject)
                 if opid != None:
-                    #If existent, it is a comment to an existing workpackage
-                    ticketid = opid.groups()[0]
-                    print(f"Antwort für Ticket #{ticketid} empfangen.")
-
-                    #Check if ticket exists
-                    ticket = Workpackage.getByID(ticketid)
-                    if ticket != None:
-                        #Remove forwarded or reply mails
-                        mail_message = EmailReplyParser(languages=['en', 'de']).read(text=mail.text_plain)
-                        comment_text = f"_Antwort von {mail.sender.full}:_\n{mail_message.latest_reply}"
-                        #If ticket is closed, set to configured status
-                        if ticket.status == config.get("OpenProject", "ticket_closed_id"):
-                            ticket.set_status(config.get("OpenProject", "ticket_reopen_id"))
-                        comment = Comment(comment_text)
-                        comment.publish(ticketid)
-                    else:
-                        print(f"Kommentar für Ticket #{ticketid} per Mail empfangen, es existiert aber nicht, erstelle neu...")
-                        #Remove opid from subject for cleaner ticket title
-                        mail.subject = re.sub(f"{opid_regex}\s*", "", mail.subject)
-                        create_workpackage(mail)
+                    self.newComment(mail, opid)
                 else:
                     #If not, create a new workpackage
                     create_workpackage(mail)
