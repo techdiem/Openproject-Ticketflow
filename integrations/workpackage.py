@@ -20,6 +20,8 @@ class Workpackage():
             self._install_subfolder = f"/{url_parts[2]}"
         else:
             self._install_subfolder = ""
+
+    def publish(self):
         self.parameters = {"subject": self.title, 
             "description": {
                 "format": "markdown",
@@ -35,15 +37,14 @@ class Workpackage():
                     "href": f"{self._install_subfolder}/api/v3/priorities/{config.get('OpenProject', 'ticket_prio_id')}"
                 }
             },
-            config.get("OpenProject", "ticket_usermail_field"): clientmail
+            config.get("OpenProject", "ticket_usermail_field"): self.clientmail
         }
         
-        if(text_format == "html"):
+        if(self.text_format == "html"):
             self.parameters["description"]["raw"] = md(self.text)
         else:
             self.parameters["description"]["raw"] = self.text
 
-    def publish(self):
         headers = {"Content-type": "application/json"}
         r = post_request(f"/api/v3/projects/{config.get('OpenProject', 'ticket_project_id')}/work_packages", headers=headers, data=json.dumps(self.parameters))
         return r
