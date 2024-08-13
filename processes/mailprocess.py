@@ -28,7 +28,7 @@ class MailProcess:
         else:
             print(f"Kommentar für Ticket #{ticketid} per Mail empfangen, es existiert aber nicht, erstelle neu...")
             #Remove opid from subject for cleaner ticket title
-            mail.subject = re.sub(f"{self.opid_regex}\s*", "", mail.subject)
+            mail.subject = re.sub(fr"{self.opid_regex}\s*", "", mail.subject)
             create_workpackage(mail)
         
     def run(self):

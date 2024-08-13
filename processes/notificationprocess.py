@@ -14,9 +14,8 @@ class NotificationProcess:
         #Send mail
         SMTPClient.send_mail(ticket.clientmail,
                             f"{opid} Neue Antwort zu \"{ticket.title}\"",
-                            "",
-                            content_cleaned,
-                            notification.actor["title"])
+                            notification.actor["title"],
+                            content_html=content_cleaned)
 
     def notification_comment(self, notification:Notification):
         print("It is a comment notification")

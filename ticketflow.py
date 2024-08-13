@@ -7,8 +7,8 @@ from processes.notificationprocess import NotificationProcess
 from config import config
 
 def main():
-    # mailProcess = MailProcess()
-    # mailProcess.run()
+    mailProcess = MailProcess()
+    mailProcess.run()
     if config.get('Workflow', 'comment_to_mail') == "true":
         notificationProcess = NotificationProcess()
         notificationProcess.run()

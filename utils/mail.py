@@ -3,6 +3,7 @@ from config import config
 from model.mailintern import MailIntern
 from model.workpackageText import WorkPackageText
 from integrations.workpackage import Workpackage
+from integrations.smtpclient import SMTPClient
 
 def mailContentToWorkpackage(mail:MailIntern) -> WorkPackageText:
     #Read config for mail senders which mails are imported as html
@@ -34,8 +35,10 @@ def create_workpackage(mail:MailIntern):
     try:
         ticket.id = json.loads(result.content)["id"]
         print(f"Ticket {ticket.title} erstellt, ID {ticket.id}")
-    except:
-        print(f"Fehler beim Erstellen des Arbeitspaketes {ticket.title}!\n{result.content}")
+        if config.get('Workflow', 'new_ticket_mail_info') == "true":
+            send_new_ticket_mail(ticket.id, ticket.title, mail.sender.email)
+    except Exception as e:
+        print(f"Fehler beim Erstellen des Arbeitspaketes {ticket.title}!\n{result.content}\n{e}")
         raise RuntimeError
     else:
         #Save attachments
@@ -46,3 +49,9 @@ def create_workpackage(mail:MailIntern):
             except:
                 print(f"Fehler beim hinzufügen des Anhangs {attachment.filename}!\n{result.content}")
                 raise RuntimeError
+
+def send_new_ticket_mail(id:int, title:str, recipient:str):
+    opid = f"[OP#{id}]"
+    subject = f"{opid} Ihr Ticket \"{title}\""
+    body = f"Ihr Ticket mit dem Titel \"{title}\" wurde erfasst."
+    SMTPClient.send_mail(recipient, subject, sender_name=config.get('Workflow', 'new_ticket_sendername'), content_plain=body)
