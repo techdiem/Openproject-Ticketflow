@@ -1,0 +1,45 @@
+[IMAP]
+server = imap.example.com
+user = username
+password = mypassword
+#Possible values: tls | ssl | none
+encryption = ssl
+
+[SMTP]
+server = smtp.example.com
+port = 465
+#Keep user empty for no authentication
+user = username
+password = mypassword
+sender_mail = openproject@example.com
+#Possible values: ssl | none
+encryption = ssl
+
+[OpenProject]
+base_url = https://openproject.example.com
+#Input handle like shown when you try to @ mention the bot in the workpackage comments
+botuser_handle = IT Support
+api_key = mykey1234abc
+#Enter values which should be used by new tickets created by mail
+#Get the values by looking at https://openproject.example.com/api/v3/work_packages/<id> with id as a ticket configured like ticketflow should do it
+ticket_project_id = 3
+ticket_type_id = 1
+ticket_status_id = 1
+ticket_prio_id = 8
+#Create a custom field type "Text" where ticketflow can save the sender mail
+ticket_usermail_field = customField1
+#Ticket closed status id, used to detect if ticket needs to be reopened on comment
+ticket_closed_id = 12
+#Status-ID to reopen a closed ticket to (see previous)
+ticket_reopen_id = 1
+
+[Workflow]
+mail_html_to_md = [
+#    "example@example.com"
+    ]
+#Should the bot forward OpenProject comments as mail (when mentioned) (true | false)
+comment_to_mail = true
+#Should the bot return a mail to the sender if a new ticket was created (including the ticket id)? (true | false)
+new_ticket_mail_info = true
+#Sender-Name for new ticket notification
+new_ticket_sendername = "Ticketflow"
