@@ -13,7 +13,7 @@ class SMTPClient():
     def send_mail(recipient, subject, sender_name, content_plain="", content_html=""):
         msg = MIMEMultipart("alternative")
         msg['Subject'] = subject
-        msg['From'] = f"{sender_name} <{config.get("SMTP", "sender_mail")}>"
+        msg['From'] = f"{sender_name} <{config.get('SMTP', 'sender_mail')}>"
         msg['To'] = recipient
         text = content_plain
         html = content_html

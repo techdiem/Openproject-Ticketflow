@@ -29,7 +29,7 @@ def mailContentToWorkpackage(mail:MailIntern) -> WorkPackageText:
 def create_workpackage(mail:MailIntern):
     #Add sender heading
     wpcontent = mailContentToWorkpackage(mail)
-    message = f"Absender: {mail.sender.full}\n---------\n{wpcontent.content}"
+    message = f"_Absender: {mail.sender.full}_\n{wpcontent.content}"
     ticket = Workpackage(mail.subject, message, mail.sender.email, wpcontent.format)
     result = ticket.publish()
     try:
