@@ -17,6 +17,8 @@ encryption = ssl
 
 [OpenProject]
 base_url = https://openproject.example.com
+#Disable https certificate validation (true | false)
+https_verification = true
 #Input handle like shown when you try to @ mention the bot in the workpackage comments
 botuser_handle = IT Support
 api_key = mykey1234abc
