@@ -5,6 +5,7 @@ from utils.mail import create_workpackage
 from integrations.imapclient import IMAPClient
 from integrations.workpackage import Workpackage
 from config import config
+from logger import logger
 
 class MailProcess:
     opid_regex = r"\[OP#(\d+)\]"
@@ -12,7 +13,7 @@ class MailProcess:
     def newComment(self, mail, opid):
         #If existent, it is a comment to an existing workpackage
         ticketid = opid.groups()[0]
-        print(f"Antwort für Ticket #{ticketid} empfangen.")
+        logger.info(f"Antwort für Ticket #{ticketid} empfangen.")
 
         #Check if ticket exists
         ticket = Workpackage.getByID(ticketid)
@@ -26,13 +27,13 @@ class MailProcess:
             comment = Comment(comment_text)
             comment.publish(ticketid)
         else:
-            print(f"Kommentar für Ticket #{ticketid} per Mail empfangen, es existiert aber nicht, erstelle neu...")
+            logger.info(f"Kommentar für Ticket #{ticketid} per Mail empfangen, es existiert aber nicht, erstelle neu...")
             #Remove opid from subject for cleaner ticket title
             mail.subject = re.sub(fr"{self.opid_regex}\s*", "", mail.subject)
             create_workpackage(mail)
         
     def run(self):
-        print("Verarbeite eingehende Mails via IMAP")
+        logger.info("Verarbeite eingehende Mails via IMAP")
         imapclient = IMAPClient()
         newmails = imapclient.check_mail()
 
@@ -46,7 +47,7 @@ class MailProcess:
                     #If not, create a new workpackage
                     create_workpackage(mail)
             except Exception as e:
-                print("Fehler beim Verarbeiten der Mails: ", e)
+                logger.error(f"Fehler beim Verarbeiten der Mails: {e}")
             else:
                 #Delete Mail
                 imapclient.mailbox.delete(mail.uid)

@@ -5,12 +5,13 @@ from integrations.comment import Comment
 from integrations.notification import Notification
 from integrations.smtpclient import SMTPClient
 from config import config
+from logger import logger
 
 class NotificationProcess:
     def process_bot_mention(self, notification:Notification, content_cleaned:str):
         ticket = Workpackage.getByID(notification.resourceID)
         opid = f"[OP#{ticket.id}]"
-        print(f"Mail mit Ticketcode {opid} an {notification.actor['title']}")
+        logger.info(f"Mail mit Ticketcode {opid} an {notification.actor['title']}")
         content = (f"{content_cleaned}"
                    ""
                    "<i>Bitte antworten Sie auf diese Nachricht über die Antworten-Funktion des Mailprogramms.\n"
@@ -22,17 +23,17 @@ class NotificationProcess:
                             content_html=content)
 
     def notification_comment(self, notification:Notification):
-        print("Es könnte eine Kommentar-Benachrichtigung sein, rufe Aktivität ab...")
+        logger.info("Es könnte eine Kommentar-Benachrichtigung sein, rufe Aktivität ab...")
         #Convert comment from markdown to html for further processing and html mail
         comment = Comment.getByActivityID(notification.activityID)
         if comment == None:
-            print("Die Aktivität dieser Benachrichtigung ist kein Kommentar, überspringe...")
+            logger.info("Die Aktivität dieser Benachrichtigung ist kein Kommentar, überspringe...")
             return
         try:
             html = markdown(comment.rawtext, output_format="html5")
         except TypeError as e:
-            print("Fehler beim konvertieren der Nachricht, ist es ein gültiger Kommentar?:", e)
-        print("Es ist ein Kommentar")
+            logger.error("Fehler beim konvertieren der Nachricht, ist es ein gültiger Kommentar?:", e)
+        logger.info("Es ist ein Kommentar")
         #Use html scraper to find mentions in comment
         soup = BeautifulSoup(html, "html.parser")
         mentions = soup.findAll('mention')
@@ -46,29 +47,29 @@ class NotificationProcess:
                 else:
                     #Other mentions (users, tickets) gets converted to only the text
                     mention.replace_with(mention.text)
-        #print(str(soup))
+        logger.debug(str(soup))
 
         #The botuser got mentioned in the comment
         if botfound:
-            print("Bot wurde markiert")
+            logger.info("Bot wurde markiert")
             self.process_bot_mention(notification, str(soup))
         else:
-            print("Bot wurde nicht markiert")
+            logger.info("Bot wurde nicht markiert")
 
     def run(self):
-        print("Verarbeite neue OpenProject-Benachrichtigungen")
+        logger.info("Verarbeite neue OpenProject-Benachrichtigungen")
         notifications = Notification.getNotificationCollection()
         for notify in notifications:
-            print("Neue Benachrichtigung, ID:", notify.id)
+            logger.info(f"Neue Benachrichtigung, ID: {notify.id}")
             if notify.reason in ["commented", "mentioned", "watched"]:
                 try:
                     self.notification_comment(notify)
                 except Exception as e:
-                    print("Fehler beim Bearbeiten der Benachrichtigung: ", e)
+                    logger.error(f"Fehler beim Bearbeiten der Benachrichtigung: {e}")
                 else:
-                    print("Markiere Benachrichtigung als gelesen.")
+                    logger.info("Markiere Benachrichtigung als gelesen.")
                     notify.setRead()
             else:
-                print("Benachrichtigung ist kein Kommentar, Typ:", notify.reason)
-                print("Markiere Benachrichtigung als gelesen.")
+                logger.info(f"Benachrichtigung ist kein Kommentar, Typ: {notify.reason}")
+                logger.info("Markiere Benachrichtigung als gelesen.")
                 notify.setRead()

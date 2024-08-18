@@ -1,5 +1,6 @@
 import json
 from config import config
+from logger import logger
 from model.mailintern import MailIntern
 from model.workpackageText import WorkPackageText
 from integrations.workpackage import Workpackage
@@ -34,20 +35,20 @@ def create_workpackage(mail:MailIntern):
     result = ticket.publish()
     try:
         ticket.id = json.loads(result.content)["id"]
-        print(f"Ticket {ticket.title} erstellt, ID {ticket.id}")
+        logger.info(f"Ticket {ticket.title} erstellt, ID {ticket.id}")
         if config.get('Workflow', 'new_ticket_mail_info') == "true":
             send_new_ticket_mail(ticket.id, ticket.title, mail.sender.email)
     except Exception as e:
-        print(f"Fehler beim Erstellen des Arbeitspaketes {ticket.title}!\n{result.content}\n{e}")
+        logger.error(f"Fehler beim Erstellen des Arbeitspaketes {ticket.title}!\n{result.content}\n{e}")
         raise RuntimeError
     else:
         #Save attachments
         for attachment in mail.attachments:
-            print(f"Anhang {attachment.filename} vom Typ {attachment.content_type} gefunden.")
+            logger.info(f"Anhang {attachment.filename} vom Typ {attachment.content_type} gefunden.")
             try:
                 result = ticket.add_attachment(attachment.filename, attachment.payload)
             except:
-                print(f"Fehler beim hinzufügen des Anhangs {attachment.filename}!\n{result.content}")
+                logger.error(f"Fehler beim hinzufügen des Anhangs {attachment.filename}!\n{result.content}")
                 raise RuntimeError
 
 def send_new_ticket_mail(id:int, title:str, recipient:str):

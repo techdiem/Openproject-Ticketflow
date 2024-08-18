@@ -1,4 +1,5 @@
 from config import config
+from logger import logger
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
@@ -32,7 +33,7 @@ class SMTPClient():
         #msgImage.add_header('Content-ID', '<my-logo>')
         #msg.attach(msgImage)
 
-        print(f"Sende Mail an {recipient}")
+        logger.info(f"Sende Mail an {recipient}")
         
         try:
             with SMTP(config.get("SMTP", "server"), config.get("SMTP", "port")) as smtp:

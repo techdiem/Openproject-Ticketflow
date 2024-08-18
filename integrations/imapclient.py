@@ -1,6 +1,7 @@
 from imap_tools import MailBox, BaseMailBox, MailBoxUnencrypted, MailBoxTls
 from config import config
 from model.mailintern import MailIntern
+from logger import logger
 
 class IMAPClient():
     def __init__(self) -> None:
@@ -23,7 +24,7 @@ class IMAPClient():
         mails = []
         #Iterate over inbox and process mails
         for msg in self.mailbox.fetch(mark_seen=False):
-            print(f"{msg.date} {msg.subject} | {len(msg.text or msg.html)} Bytes, {len(msg.attachments)} Anhänge")
+            logger.info(f"{msg.date} {msg.subject} | {len(msg.text or msg.html)} Bytes, {len(msg.attachments)} Anhänge")
 
             #Handle empty subject
             subject = "Kein Titel" if msg.subject == "" else msg.subject
