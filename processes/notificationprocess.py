@@ -6,21 +6,20 @@ from integrations.notification import Notification
 from integrations.smtpclient import SMTPClient
 from config import config
 from logger import logger
+from utils.templates import template_commentmail
 
 class NotificationProcess:
     def process_bot_mention(self, notification:Notification, content_cleaned:str):
         ticket = Workpackage.getByID(notification.resourceID)
         opid = f"[OP#{ticket.id}]"
         logger.info(f"Mail mit Ticketcode {opid} an {notification.actor['title']}")
-        content = (f"{content_cleaned}"
-                   ""
-                   "<i>Bitte antworten Sie auf diese Nachricht über die Antworten-Funktion des Mailprogramms.\n"
-                   "Wir können Ihre Nachricht dann einfacher zuordnen. Danke!</i>")
+        subject, body_plain, body_html = template_commentmail(opid, ticket.title, content_cleaned, notification.actor["title"])
         #Send mail
         SMTPClient.send_mail(ticket.clientmail,
-                            f"{opid} Neue Antwort zu \"{ticket.title}\"",
+                            subject,
                             notification.actor["title"],
-                            content_html=content)
+                            content_html=body_html,
+                            content_plain=body_plain)
 
     def notification_comment(self, notification:Notification):
         logger.info("Es könnte eine Kommentar-Benachrichtigung sein, rufe Aktivität ab...")

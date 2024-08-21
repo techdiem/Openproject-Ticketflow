@@ -1,6 +1,7 @@
 import json
 from config import config
 from logger import logger
+from utils.templates import template_newmail
 from model.mailintern import MailIntern
 from model.workpackageText import WorkPackageText
 from integrations.workpackage import Workpackage
@@ -53,6 +54,8 @@ def create_workpackage(mail:MailIntern):
 
 def send_new_ticket_mail(id:int, title:str, recipient:str):
     opid = f"[OP#{id}]"
-    subject = f"{opid} Ihr Ticket \"{title}\""
-    body = f"Ihr Ticket mit dem Titel \"{title}\" wurde erfasst."
-    SMTPClient.send_mail(recipient, subject, sender_name=config.get('Workflow', 'new_ticket_sendername'), content_plain=body)
+    subject, body_plain, body_html = template_newmail(opid, title)
+    SMTPClient.send_mail(recipient, subject, 
+                         sender_name=config.get('Workflow', 'new_ticket_sendername'), 
+                         content_plain=body_plain, 
+                         content_html=body_html)

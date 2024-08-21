@@ -50,3 +50,24 @@ comment_to_mail = true
 new_ticket_mail_info = true
 #Sender-Name for new ticket notification
 new_ticket_sendername = "Ticketflow"
+
+[Templates]
+#Configure mail templates, use at least one of them, plain or html or both
+
+#Mail template for new ticket alert, available variables:
+# $subject Title of the new Workpackage
+# $opid ID of the new Workpackage
+newticket_subject = $opid Ihr Ticket $subject
+newticket_plain = Ihr Ticket mit dem Titel $subject wurde erfasst.
+newticket_html = <p>Ihr Ticket mit dem Titel $subject wurde erfasst.</p>
+#Mail template for comment mail, available variables:
+# $subject Title of the Workpackage
+# $opid ID of the Workpackage
+# $content Text of the new comment
+# $actor Display name of the comment author (OpenProject user)
+commentmail_subject = $opid Neue Antwort zu $subject
+commentmail_plain = $content
+commentmail_html = $content
+
+    <i>Bitte antworten Sie auf diese Nachricht über die Antworten-Funktion des Mailprogramms.\n
+    Wir können Ihre Nachricht dann einfacher zuordnen. Danke!</i>
