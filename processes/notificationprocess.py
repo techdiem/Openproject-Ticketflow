@@ -13,7 +13,9 @@ class NotificationProcess:
         ticket = Workpackage.getByID(notification.resourceID)
         opid = f"[OP#{ticket.id}]"
         logger.info(f"Mail mit Ticketcode {opid} an {notification.actor['title']}")
-        subject, body_plain, body_html = template_commentmail(opid, ticket.title, content_cleaned, notification.actor["title"])
+        soup = BeautifulSoup(content_cleaned)
+        plaincontent = soup.get_text()
+        subject, body_plain, body_html = template_commentmail(opid, ticket.title, plaincontent, notification.actor["title"])
         #Send mail
         SMTPClient.send_mail(ticket.clientmail,
                             subject,

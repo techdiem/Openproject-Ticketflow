@@ -34,7 +34,7 @@ def template_newmail(opid:str, subject:str):
 def template_commentmail(opid:str, subject:str, content:str, actor:str):
     sub = config.get("Templates", "commentmail_subject")
     plain = config.get("Templates", "commentmail_plain")
-    html = config.get("Templates", "commentmail_html")
+    html = config.get("Templates", "commentmail_html").replace("\n", "")
     
     #At least one template must be used
     if plain == "" and html == "":

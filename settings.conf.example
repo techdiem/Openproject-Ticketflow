@@ -1,6 +1,6 @@
 [General]
 #Path to logfile
-logfile = "ticketflow.log"
+logfile = ticketflow.log
 
 [IMAP]
 server = imap.example.com
@@ -69,5 +69,5 @@ commentmail_subject = $opid Neue Antwort zu $subject
 commentmail_plain = $content
 commentmail_html = $content
 
-    <i>Bitte antworten Sie auf diese Nachricht über die Antworten-Funktion des Mailprogramms.\n
+    <i>Bitte antworten Sie auf diese Nachricht über die Antworten-Funktion des Mailprogramms.
     Wir können Ihre Nachricht dann einfacher zuordnen. Danke!</i>
