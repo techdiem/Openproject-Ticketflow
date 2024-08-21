@@ -1,9 +1,10 @@
 import logging
 import sys
+from config import config
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', 
-                    filename='ticketflow.log', 
+                    filename=config.get("General", "logfile"), 
                     filemode='w', 
                     encoding='utf-8', 
                     level=logging.DEBUG)

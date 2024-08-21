@@ -1,3 +1,7 @@
+[General]
+#Path to logfile
+logfile = "ticketflow.log"
+
 [IMAP]
 server = imap.example.com
 user = username
@@ -17,7 +21,7 @@ encryption = ssl
 
 [OpenProject]
 base_url = https://openproject.example.com
-#Disable https certificate validation (true | false)
+#https certificate validation (true | false)
 https_verification = true
 #Input handle like shown when you try to @ mention the bot in the workpackage comments
 botuser_handle = IT Support
@@ -32,10 +36,11 @@ ticket_prio_id = 8
 ticket_usermail_field = customField1
 #Ticket closed status id, used to detect if ticket needs to be reopened on comment
 ticket_closed_id = 12
-#Status-ID to reopen a closed ticket to (see previous)
+#Status-ID to reopen a closed ticket to (see previous), needs permission to do so (workflow in OP)
 ticket_reopen_id = 1
 
 [Workflow]
+#Convert incoming html mail from this addresses to markdown
 mail_html_to_md = [
 #    "example@example.com"
     ]
