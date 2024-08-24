@@ -1,5 +1,6 @@
 from config import config
 from string import Template
+from bs4 import BeautifulSoup
 
 def template_general(subject, plain, html, substitution:dict):
     sub = Template(subject).safe_substitute(substitution)
@@ -40,10 +41,13 @@ def template_commentmail(opid:str, subject:str, content:str, actor:str):
     if plain == "" and html == "":
         return None
     
+    soup = BeautifulSoup(content, "html.parser")
+    plaincontent = soup.get_text()
+    
     substitution = {
         "opid": str(opid),
         "subject": subject,
         "content": content,
         "actor": actor
     }
-    return template_general(sub, plain, html, substitution)
+    return template_general(sub, plaincontent, html, substitution)
