@@ -20,7 +20,17 @@ class MailProcess:
         if ticket != None:
             #Remove forwarded or reply mails
             mail_message = EmailReplyParser(languages=['en', 'de']).read(text=mail.text_plain)
-            comment_text = f"_Antwort von {mail.sender.full}:_\n{mail_message.latest_reply}"
+            comment_text = f"_Antwort von {mail.sender.full}:_\n{mail_message.latest_reply}\n"
+            if len(mail.attachments) > 0:
+                for attachment in mail.attachments:
+                    logger.info(f"Anhang {attachment.filename} vom Typ {attachment.content_type} gefunden.")
+                    try:
+                        result = ticket.add_attachment(attachment.filename, attachment.payload)
+                        comment_text += f"\n_Anhang: {attachment.filename}_"
+                    except:
+                        logger.error(f"Fehler beim Hinzufügen des Anhangs {attachment.filename}!\n{result.content}")
+                        raise RuntimeError
+
             #If ticket is closed, set to configured status
             if ticket.status == config.get("OpenProject", "ticket_closed_id"):
                 ticket.set_status(config.get("OpenProject", "ticket_reopen_id"))
