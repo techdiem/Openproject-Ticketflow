@@ -12,6 +12,9 @@ else:
 class SMTPClient():
     @staticmethod
     def send_mail(recipient, subject, sender_name, content_plain="", content_html=""):
+        if recipient == None or recipient == "":
+            logger.info("Keine Mailadresse im Arbeitspaket hinterlegt, es wird keine Mail gesendet.")
+            return
         msg = MIMEMultipart("alternative")
         msg['Subject'] = subject
         msg['From'] = f"{sender_name} <{config.get('SMTP', 'sender_mail')}>"
