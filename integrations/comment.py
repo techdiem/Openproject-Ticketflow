@@ -1,5 +1,6 @@
 import json
 from config import config
+from integrations.activity import Activity
 from integrations.apiconnection import get_request, post_request
 
 class Comment():
@@ -19,11 +20,11 @@ class Comment():
 
     @staticmethod
     def getByActivityID(activityID):
-        result = get_request(f"/api/v3/activities/{activityID}")
-        data = json.loads(result.content)
-        if (data["_type"] == "Activity::Comment"):
-            comment = Comment(data["comment"]["raw"],
-                            data["comment"]["format"])
+        #Fetch activity details and return comment object
+        activity = Activity.getByID(activityID)
+        if (activity.type == "Activity::Comment"):
+            comment = Comment(activity.data["comment"]["raw"],
+                            activity.data["comment"]["format"])
             return comment
         else:
             return None

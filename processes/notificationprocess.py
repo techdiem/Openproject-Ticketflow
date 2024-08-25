@@ -4,16 +4,29 @@ from integrations.workpackage import Workpackage
 from integrations.comment import Comment
 from integrations.notification import Notification
 from integrations.smtpclient import SMTPClient
+from integrations.activity import Activity
 from config import config
 from logger import logger
-from utils.templates import template_commentmail
+from utils.templates import template_commentmail, template_statusmail
 
 class NotificationProcess:
     def process_bot_mention(self, notification:Notification, content_cleaned:str):
         ticket = Workpackage.getByID(notification.resourceID)
         opid = f"[OP#{ticket.id}]"
-        logger.info(f"Mail mit Ticketcode {opid} an {notification.actor['title']}")
+        logger.info(f"Mail mit Ticketcode {opid}")
         subject, body_plain, body_html = template_commentmail(opid, ticket.title, content_cleaned, notification.actor["title"])
+        #Send mail
+        SMTPClient.send_mail(ticket.clientmail,
+                            subject,
+                            notification.actor["title"],
+                            content_html=body_html,
+                            content_plain=body_plain)
+    
+    def process_status_change(self, notification:Notification, statusmsg:str):
+        ticket = Workpackage.getByID(notification.resourceID)
+        opid = f"[OP#{ticket.id}]"
+        logger.info(f"Mail mit Ticketcode {opid}")
+        subject, body_plain, body_html = template_statusmail(opid, ticket.title, statusmsg)
         #Send mail
         SMTPClient.send_mail(ticket.clientmail,
                             subject,
@@ -23,7 +36,6 @@ class NotificationProcess:
 
     def notification_comment(self, notification:Notification):
         logger.info("Es könnte eine Kommentar-Benachrichtigung sein, rufe Aktivität ab...")
-        #Convert comment from markdown to html for further processing and html mail
         comment = Comment.getByActivityID(notification.activityID)
         if comment == None:
             logger.info("Die Aktivität dieser Benachrichtigung ist kein Kommentar, überspringe...")
@@ -55,6 +67,14 @@ class NotificationProcess:
         else:
             logger.info("Bot wurde nicht markiert")
 
+    def notification_processed(self, notification:Notification):
+        logger.info("Es ist eine Verarbeitungs-Benachrichtigung, Statusänderung?")
+        activity = Activity.getByID(notification.activityID)
+        detailsstr = activity.data["details"][0]["raw"]
+        if detailsstr.startswith("Status"):
+            logger.info("Es ist eine Statusänderung")
+            self.process_status_change(notification, detailsstr)
+
     def run(self):
         logger.info("Verarbeite neue OpenProject-Benachrichtigungen")
         notifications = Notification.getNotificationCollection()
@@ -62,13 +82,23 @@ class NotificationProcess:
             logger.info(f"Neue Benachrichtigung, ID: {notify.id}")
             if notify.reason in ["commented", "mentioned", "watched"]:
                 try:
-                    self.notification_comment(notify)
+                    if config.get('Workflow', 'comment_to_mail') == "true":
+                        self.notification_comment(notify)
+                except Exception as e:
+                    logger.error(f"Fehler beim Bearbeiten der Benachrichtigung: {e}")
+                else:
+                    logger.info("Markiere Benachrichtigung als gelesen.")
+                    notify.setRead()
+            elif notify.reason == "processed":
+                try:
+                    if config.get('Workflow', 'status_mail_info') == "true":
+                        self.notification_processed(notify)
                 except Exception as e:
                     logger.error(f"Fehler beim Bearbeiten der Benachrichtigung: {e}")
                 else:
                     logger.info("Markiere Benachrichtigung als gelesen.")
                     notify.setRead()
             else:
-                logger.info(f"Benachrichtigung ist kein Kommentar, Typ: {notify.reason}")
+                logger.info(f"Benachrichtigungstyp wird nicht verarbeitet, Typ: {notify.reason}")
                 logger.info("Markiere Benachrichtigung als gelesen.")
                 notify.setRead()

@@ -50,6 +50,8 @@ comment_to_mail = true
 new_ticket_mail_info = true
 #Sender-Name for new ticket notification
 new_ticket_sendername = "Ticketflow"
+#Should the bot send a mail to ticket creator on workpackage status change? (true | false)
+status_mail_info = true
 
 [Templates]
 #Configure mail templates, use at least one of them, plain or html or both
@@ -71,3 +73,13 @@ commentmail_html = $content
 
     <i>Bitte antworten Sie auf diese Nachricht über die Antworten-Funktion des Mailprogramms.
     Wir können Ihre Nachricht dann einfacher zuordnen. Danke!</i>
+
+#Mail template for status change mail, available variables:
+# $opid ID of the Workpackage
+# $subject Title of the Workpackage
+# $statuschange Message from status change activity (Status changed from .. to ..)
+statusmail_subject = $opid Status Ihres Servicetickets wurde geändert
+statusmail_plain = Der Status Ihres Servicetickets "$subject" wurde geändert:
+    $statuschange
+statusmail_html = <h3>Der Status Ihres Servicetickets "$subject" wurde geändert:</h3>
+    <p>$statuschange</p>

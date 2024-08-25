@@ -51,3 +51,19 @@ def template_commentmail(opid:str, subject:str, content:str, actor:str):
         "actor": actor
     }
     return template_general(sub, plaincontent, html, substitution)
+
+def template_statusmail(opid:str, subject:str, statuschange:str):
+    sub = config.get("Templates", "statusmail_subject")
+    plain = config.get("Templates", "statusmail_plain")
+    html = config.get("Templates", "statusmail_html").replace("\n", "")
+
+    #At least one template must be used
+    if plain == "" and html == "":
+        return None
+    
+    substitution = {
+        "opid": str(opid),
+        "subject": subject,
+        "statuschange": statuschange
+    }
+    return template_general(sub, plain, html, substitution)
