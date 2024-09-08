@@ -3,10 +3,10 @@ import sys
 from config import config
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', 
-                    filename=config.get("General", "logfile"), 
-                    filemode='w', 
-                    encoding='utf-8', 
-                    level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                    filename=config.get("General", "logfile"),
+                    filemode='a',
+                    encoding='utf-8',
+                    level=logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.info("Initialized logging")
