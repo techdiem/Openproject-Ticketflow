@@ -86,7 +86,7 @@ class NotificationProcess:
             logger.info("Neue Benachrichtigung, ID: %s", notify.id)
             if notify.reason in ["commented", "mentioned", "watched"]:
                 try:
-                    if config.get('Workflow', 'comment_to_mail') == "true":
+                    if config.getboolean('Workflow', 'comment_to_mail'):
                         self.notification_comment(notify)
                 except Exception as e:
                     logger.error("Fehler beim Bearbeiten der Benachrichtigung: %s", e)
@@ -95,7 +95,7 @@ class NotificationProcess:
                     notify.set_read()
             elif notify.reason == "processed":
                 try:
-                    if config.get('Workflow', 'status_mail_info') == "true":
+                    if config.getboolean('Workflow', 'status_mail_info'):
                         self.notification_processed(notify)
                 except Exception as e:
                     logger.error("Fehler beim Bearbeiten der Benachrichtigung: %s", e)

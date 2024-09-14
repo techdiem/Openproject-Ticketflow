@@ -9,9 +9,9 @@ from processes.mailprocess import MailProcess
 from processes.notificationprocess import NotificationProcess
 
 def main():
-    if config.get("OpenProject", "https_verification") == "false":
+    if not config.getboolean("OpenProject", "https_verification"):
         logger.warning("Critical: HTTPS Zertifikats-Verifikation ist deaktiviert! \
-                       -> Unsichere Verbindung zur OpenProject-API!")
+-> Unsichere Verbindung zur OpenProject-API!")
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     mail_process = MailProcess()
     mail_process.run()

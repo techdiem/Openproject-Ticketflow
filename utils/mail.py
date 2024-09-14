@@ -41,7 +41,7 @@ def create_workpackage(mail:MailIntern):
     try:
         ticket.id = json.loads(result.content)["id"]
         logger.info("Ticket %s erstellt, ID %s", ticket.title, ticket.id)
-        if config.get('Workflow', 'new_ticket_mail_info') == "true":
+        if config.getboolean('Workflow', 'new_ticket_mail_info'):
             send_new_ticket_mail(ticket.id, ticket.title, mail.sender.email)
     except Exception as e:
         logger.error("Fehler beim Erstellen des Arbeitspaketes %s\n%s\n%s",

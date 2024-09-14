@@ -14,7 +14,7 @@ class SMTPClient():
     def send_mail(recipient, subject, sender_name, content_plain="", content_html=""):
         if recipient is None or recipient == "":
             logger.info("Keine Mailadresse im Arbeitspaket hinterlegt, \
-                        es wird keine Mail gesendet.")
+es wird keine Mail gesendet.")
             return
         msg = MIMEMultipart("alternative")
         msg['Subject'] = subject
@@ -40,7 +40,7 @@ class SMTPClient():
         logger.info("Sende Mail an %s", recipient)
 
         try:
-            with SMTP(config.get("SMTP", "server"), config.get("SMTP", "port")) as smtp:
+            with SMTP(config.get("SMTP", "server"), config.getint("SMTP", "port")) as smtp:
                 if config.get("SMTP", "user") != "":
                     smtp.login(config.get("SMTP", "user"), config.get("SMTP", "password"))
                 try:

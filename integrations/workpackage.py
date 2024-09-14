@@ -10,7 +10,7 @@ class Workpackage():
                  lock_version=None,
                  status=None) -> None:
         self.id = ticket_id
-        self.title = subject = "Kein Titel" if title == "" else title
+        self.title = "Kein Titel" if title == "" else title
         self.text = text
         self.text_format = text_format
         self.clientmail = clientmail

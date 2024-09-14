@@ -42,7 +42,7 @@ class MailProcess:
             comment.publish(ticketid)
         else:
             logger.info("Kommentar für Ticket #%s per Mail empfangen, es existiert aber nicht,\
-                         erstelle neu...", ticketid)
+erstelle neu...", ticketid)
             #Remove opid from subject for cleaner ticket title
             mail.subject = re.sub(fr"{self.opid_regex}\s*", "", mail.subject)
             create_workpackage(mail)
