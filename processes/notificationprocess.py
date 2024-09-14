@@ -11,21 +11,24 @@ from utils.templates import template_commentmail, template_statusmail
 
 class NotificationProcess:
     def process_bot_mention(self, notification:Notification, content_cleaned:str):
-        ticket = Workpackage.getByID(notification.resourceID)
+        ticket = Workpackage.get_by_id(notification.resource_id)
         opid = f"[OP#{ticket.id}]"
-        logger.info(f"Mail mit Ticketcode {opid}")
-        subject, body_plain, body_html = template_commentmail(opid, ticket.title, content_cleaned, notification.actor["title"])
+        logger.info("Mail mit Ticketcode %s", opid)
+        subject, body_plain, body_html = template_commentmail(opid,
+                                                              ticket.title,
+                                                              content_cleaned,
+                                                              notification.actor["title"])
         #Send mail
         SMTPClient.send_mail(ticket.clientmail,
                             subject,
                             notification.actor["title"],
                             content_html=body_html,
                             content_plain=body_plain)
-    
+
     def process_status_change(self, notification:Notification, statusmsg:str):
-        ticket = Workpackage.getByID(notification.resourceID)
+        ticket = Workpackage.get_by_id(notification.resource_id)
         opid = f"[OP#{ticket.id}]"
-        logger.info(f"Mail mit Ticketcode {opid}")
+        logger.info("Mail mit Ticketcode %s", opid)
         subject, body_plain, body_html = template_statusmail(opid, ticket.title, statusmsg)
         #Send mail
         SMTPClient.send_mail(ticket.clientmail,
@@ -36,14 +39,15 @@ class NotificationProcess:
 
     def notification_comment(self, notification:Notification):
         logger.info("Es könnte eine Kommentar-Benachrichtigung sein, rufe Aktivität ab...")
-        comment = Comment.getByActivityID(notification.activityID)
-        if comment == None:
+        comment = Comment.get_by_activity_id(notification.activity_id)
+        if comment is None:
             logger.info("Die Aktivität dieser Benachrichtigung ist kein Kommentar, überspringe...")
             return
         try:
             html = markdown(comment.rawtext, output_format="html5")
         except TypeError as e:
-            logger.error("Fehler beim konvertieren der Nachricht, ist es ein gültiger Kommentar?:", e)
+            logger.error("Fehler beim konvertieren der Nachricht, \
+                         ist es ein gültiger Kommentar?: %s", e)
         logger.info("Es ist ein Kommentar")
         #Use html scraper to find mentions in comment
         soup = BeautifulSoup(html, "html.parser")
@@ -69,7 +73,7 @@ class NotificationProcess:
 
     def notification_processed(self, notification:Notification):
         logger.info("Es ist eine Verarbeitungs-Benachrichtigung, Statusänderung?")
-        activity = Activity.getByID(notification.activityID)
+        activity = Activity.get_by_id(notification.activity_id)
         detailsstr = activity.data["details"][0]["raw"]
         if detailsstr.startswith("Status"):
             logger.info("Es ist eine Statusänderung")
@@ -77,28 +81,28 @@ class NotificationProcess:
 
     def run(self):
         logger.info("Verarbeite neue OpenProject-Benachrichtigungen")
-        notifications = Notification.getNotificationCollection()
+        notifications = Notification.get_notification_collection()
         for notify in notifications:
-            logger.info(f"Neue Benachrichtigung, ID: {notify.id}")
+            logger.info("Neue Benachrichtigung, ID: %s", notify.id)
             if notify.reason in ["commented", "mentioned", "watched"]:
                 try:
                     if config.get('Workflow', 'comment_to_mail') == "true":
                         self.notification_comment(notify)
                 except Exception as e:
-                    logger.error(f"Fehler beim Bearbeiten der Benachrichtigung: {e}")
+                    logger.error("Fehler beim Bearbeiten der Benachrichtigung: %s", e)
                 else:
                     logger.info("Markiere Benachrichtigung als gelesen.")
-                    notify.setRead()
+                    notify.set_read()
             elif notify.reason == "processed":
                 try:
                     if config.get('Workflow', 'status_mail_info') == "true":
                         self.notification_processed(notify)
                 except Exception as e:
-                    logger.error(f"Fehler beim Bearbeiten der Benachrichtigung: {e}")
+                    logger.error("Fehler beim Bearbeiten der Benachrichtigung: %s", e)
                 else:
                     logger.info("Markiere Benachrichtigung als gelesen.")
-                    notify.setRead()
+                    notify.set_read()
             else:
-                logger.info(f"Benachrichtigungstyp wird nicht verarbeitet, Typ: {notify.reason}")
+                logger.info("Benachrichtigungstyp wird nicht verarbeitet, Typ: %s", notify.reason)
                 logger.info("Markiere Benachrichtigung als gelesen.")
-                notify.setRead()
+                notify.set_read()

@@ -1,10 +1,10 @@
-from config import config
-from logger import logger
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
+from config import config
+from logger import logger
 
-if (config.get("SMTP", "encryption") == "ssl"):
+if config.get("SMTP", "encryption") == "ssl":
     from smtplib import SMTP_SSL as SMTP
 else:
     from smtplib import SMTP
@@ -12,8 +12,9 @@ else:
 class SMTPClient():
     @staticmethod
     def send_mail(recipient, subject, sender_name, content_plain="", content_html=""):
-        if recipient == None or recipient == "":
-            logger.info("Keine Mailadresse im Arbeitspaket hinterlegt, es wird keine Mail gesendet.")
+        if recipient is None or recipient == "":
+            logger.info("Keine Mailadresse im Arbeitspaket hinterlegt, \
+                        es wird keine Mail gesendet.")
             return
         msg = MIMEMultipart("alternative")
         msg['Subject'] = subject
@@ -36,15 +37,15 @@ class SMTPClient():
         #msgImage.add_header('Content-ID', '<my-logo>')
         #msg.attach(msgImage)
 
-        logger.info(f"Sende Mail an {recipient}")
-        
+        logger.info("Sende Mail an %s", recipient)
+
         try:
             with SMTP(config.get("SMTP", "server"), config.get("SMTP", "port")) as smtp:
-                if (config.get("SMTP", "user") != ""):
+                if config.get("SMTP", "user") != "":
                     smtp.login(config.get("SMTP", "user"), config.get("SMTP", "password"))
                 try:
                     smtp.sendmail(config.get("SMTP", "sender_mail"), recipient, msg.as_string())
                 finally:
                     smtp.quit()
         except Exception as e:
-            raise Exception(f"Fehler beim Absenden der Mail: {e}")
+            raise IOError(f"Fehler beim Absenden der Mail: {e}") from e
