@@ -1,7 +1,10 @@
-#
-# OpenProject-Ticketflow
-#
+'''
+OpenProject-Ticketflow
+Bridge between mail and OpenProject API, to use work packages like a ticket system.
 
+© 2024 github.com/TechDiem
+Version: 1.0.0
+'''
 import urllib3
 from config import config
 from logger import logger
