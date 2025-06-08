@@ -37,9 +37,12 @@ class NotificationProcess:
                             content_html=body_html,
                             content_plain=body_plain)
 
-    def notification_comment(self, notification:Notification):
+    def notification_comment(self, notification:Notification, activity:Activity):
+        if not notification.reason in ["commented", "mentioned", "watched"]:
+            logger.info("Notification reason gibt an, dass es kein Kommentar ist")
+            return
         logger.info("Es könnte eine Kommentar-Benachrichtigung sein, rufe Aktivität ab...")
-        comment = Comment.get_by_activity_id(notification.activity_id)
+        comment = Comment.get_by_activity(activity)
         if comment is None:
             logger.info("Die Aktivität dieser Benachrichtigung ist kein Kommentar, überspringe...")
             return
@@ -71,38 +74,31 @@ class NotificationProcess:
         else:
             logger.info("Bot wurde nicht markiert")
 
-    def notification_processed(self, notification:Notification):
+    def notification_processed(self, notification:Notification, activity:Activity):
         logger.info("Es ist eine Verarbeitungs-Benachrichtigung, Statusänderung?")
-        activity = Activity.get_by_id(notification.activity_id)
-        detailsstr = activity.data["details"][0]["raw"]
-        if detailsstr.startswith("Status"):
-            logger.info("Es ist eine Statusänderung")
-            self.process_status_change(notification, detailsstr)
+        details = activity.data["details"]
+        if len(details) > 0:
+            for action in details:
+                detailsstr = action["raw"]
+                if detailsstr.startswith("Status"):
+                    logger.info("Es ist eine Statusänderung")
+                    self.process_status_change(notification, detailsstr)
+        else:
+            logger.info("Keine Processed-Aktivität in Benachrichtigung enthalten")
 
     def run(self):
         logger.info("Verarbeite neue OpenProject-Benachrichtigungen")
         notifications = Notification.get_notification_collection()
         for notify in notifications:
             logger.info("Neue Benachrichtigung, ID: %s", notify.id)
-            if notify.reason in ["commented", "mentioned", "watched"]:
-                try:
-                    if config.getboolean('Workflow', 'comment_to_mail'):
-                        self.notification_comment(notify)
-                except Exception as e:
-                    logger.error("Fehler beim Bearbeiten der Benachrichtigung: %s", e)
-                else:
-                    logger.info("Markiere Benachrichtigung als gelesen.")
-                    notify.set_read()
-            elif notify.reason == "processed":
-                try:
-                    if config.getboolean('Workflow', 'status_mail_info'):
-                        self.notification_processed(notify)
-                except Exception as e:
-                    logger.error("Fehler beim Bearbeiten der Benachrichtigung: %s", e)
-                else:
-                    logger.info("Markiere Benachrichtigung als gelesen.")
-                    notify.set_read()
+            try:
+                activity = Activity.get_by_id(notify.activity_id)
+                if config.getboolean('Workflow', 'comment_to_mail'):
+                    self.notification_comment(notify, activity)
+                if config.getboolean('Workflow', 'status_mail_info'):
+                    self.notification_processed(notify, activity)
+            except Exception as e:
+                logger.error("Fehler beim Bearbeiten der Benachrichtigung: %s", e)
             else:
-                logger.info("Benachrichtigungstyp wird nicht verarbeitet, Typ: %s", notify.reason)
                 logger.info("Markiere Benachrichtigung als gelesen.")
                 notify.set_read()

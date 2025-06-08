@@ -20,9 +20,8 @@ class Comment():
         return result
 
     @staticmethod
-    def get_by_activity_id(activity_id):
+    def get_by_activity(activity):
         #Fetch activity details and return comment object
-        activity = Activity.get_by_id(activity_id)
         if activity.type == "Activity::Comment":
             comment = Comment(activity.data["comment"]["raw"],
                             activity.data["comment"]["format"])
