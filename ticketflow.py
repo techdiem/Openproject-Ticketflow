@@ -2,7 +2,7 @@
 OpenProject-Ticketflow
 Bridge between mail and OpenProject API, to use work packages like a ticket system.
 
-© 2024 github.com/TechDiem
+© 2025 github.com/TechDiem
 Version: 1.0.0
 '''
 import urllib3

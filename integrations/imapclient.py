@@ -18,6 +18,7 @@ class IMAPClient():
             connect_box = MailBoxUnencrypted
 
         #Connect IMAP
+        #TODO handle MailBoxLoginError
         return connect_box(config.get("IMAP", "server")).login(config.get("IMAP", "user"),
                                                               config.get("IMAP", "password"))
 

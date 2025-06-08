@@ -7,12 +7,12 @@ OpenProject-Mail bridge for usage as a support ticket application
 - Bridge mail answers to OpenProject comments
 
 ## Installation
-Tested on Debian 12, Python 3.11, OpenProject 14
+Tested on Debian 12, Python 3.13, OpenProject 16
 - Create a service user to run the application, e.g. `adduser ticketflow --system`
 - Clone the repo to a local folder, e.g. `/opt/openproject-ticketflow` and switch into this directory
 - Create a virtual environment for dependencies: `python3 -m venv .\venv`
 - Install dependencies: `venv\bin\pip3 install -r requirements.txt`
-- Create a config and edit the values to your environment: `cp settings.conf.example settings.conf`
+- Create a config and edit the values to your environment: `cp settings.example.conf settings.conf`
 - Make sure that the service user has read permissions on all the files in the software folder and write permissions to the logfile destination configured in settings.conf (Recommended: `/var/log/ticketflow.log` including logrotate config)
 - Call the script: `venv\bin\python3 ticketflow.py`
 - Put it into a crontab: `/etc/cron.d/ticketflow`: `*/5 * * * * ticketflow cd /opt/openproject-ticketflow && ./venv/bin/python3 ticketflow.py 2&>1 >/dev/null`
