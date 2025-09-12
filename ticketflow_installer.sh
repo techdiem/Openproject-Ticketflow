@@ -7,6 +7,8 @@ TEMP_SETTINGS_FILE="${TEMPFILE_DIR}/settings_temp_backup.conf"
 VENV_PATH="${APP_DIR}/venv"
 USER="ticketflow"
 CRON_FILE="/etc/cron.d/ticketflow"
+LOGROTATE_FILE="/etc/logrotate.d/ticketflow"
+FLOW_LOGFILE="/var/log/ticketflow.log" #Log location from settings.conf
 
 
 GREEN='\033[0;32m'
@@ -51,7 +53,7 @@ case "$COMMAND" in
 
         echo -e "${GREEN}Erstelle Benutzer '$USER'...${NC}"
         if ! id -u "$USER" >/dev/null 2>&1; then
-            useradd -r -s /sbin/nologin "$USER"
+            useradd -r "$USER"
         fi
         
         echo -e "${GREEN}Erstelle Anwendungsverzeichnisse...${NC}"
@@ -72,9 +74,29 @@ case "$COMMAND" in
             su -s /bin/bash "$USER" -c "source \"$VENV_PATH/bin/activate\" && pip install -r \"${APP_DIR}/requirements.txt\""
         fi
 
+        echo -e "${GREEN}Erstelle Logfile...${NC}"
+        touch $FLOW_LOGFILE
+        chown ticketflow:ticketflow $FLOW_LOGFILE
+
         echo -e "${GREEN}Erstelle Cron-Job-Datei...${NC}"
         echo "# Cron Job für Ticketflow-Bot, legt Polling-Intervall für Mail und Benachrichtigungen fest" > "$CRON_FILE"
-        echo "5 6-19 * * 1-5 $USER cd $APP_DIR && $VENV_PATH/bin/python $APP_DIR/ticketflow.py" >> "$CRON_FILE"
+        echo "HOME=$APP_DIR" > "$CRON_FILE"
+        echo "*/5 6-19 * * 1-5 $USER $VENV_PATH/bin/python3 $APP_DIR/ticketflow.py > /dev/null 2>&1" >> "$CRON_FILE"
+        chmod 600 $CRON_FILE
+
+        echo -e "${GREEN}Erstelle Logrotate-Config...${NC}"
+        cat << EOF > $LOGROTATE_FILE
+$FLOW_LOGFILE {
+        rotate 4
+        daily
+        missingok
+        notifempty
+        compress
+        delaycompress
+        sharedscripts
+}
+EOF
+        chmod 644 $LOGROTATE_FILE
 
         echo -e "${GREEN}Installation erfolgreich abgeschlossen.${NC}"
         echo -e "${GREEN}Passe bei Bedarf das Polling Intervall in \"$CRON_FILE\" an, Standard ist Werktags 6-19 Uhr alle 5min.${NC}"
@@ -184,12 +206,34 @@ case "$COMMAND" in
         echo -e "${GREEN}Lösche Cron-Job...${NC}"
         rm -f "$CRON_FILE"
 
+        echo -e "${GREEN}Lösche Logrotate-Config...${NC}"
+        rm -f "$LOGROTATE_FILE"
+
+        echo -e "${GREEN}Lösche Logfile...${NC}"
+        rm -f "$FLOW_LOGFILE"
+
         echo -e "${GREEN}Deinstallation erfolgreich abgeschlossen.${NC}"
+        ;;
+
+    run)
+        if [ ! -d "$APP_DIR" ]; then
+            echo -e "${RED}Fehler: Anwendungsverzeichnis '$APP_DIR' nicht gefunden.${NC}"
+            echo -e "${RED}Anwendung scheint nicht installiert zu sein.${NC}"
+            exit 1
+        fi
+        su -s /bin/bash "$USER" -c "cd $APP_DIR && $VENV_PATH/bin/python3 $APP_DIR/ticketflow.py"
         ;;
 
     *)
         echo -e "${RED}Unbekannter Befehl: $COMMAND${NC}"
-        echo -e "${RED}Verwendung: $0 {install|update|uninstall} [ZIP-Datei]${NC}"
+        echo -e "${RED}Verwendung: $0 {install|update|uninstall|run} [ZIP-Datei]${NC}
+
+install [Zip-Pfad]: Software neu installieren
+update [Zip-Pfad]: Software und Python-Umgebung aktualisieren
+uninstall: Software entfernen
+run: Synchronisation manuell ausführen
+"
+
         exit 1
         ;;
 esac
