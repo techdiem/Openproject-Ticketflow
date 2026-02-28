@@ -138,7 +138,7 @@ class NotificationProcess:
         bot_handle = f"@{config.get('OpenProject', 'botuser_handle')}"
         bot_found = False
 
-        for mention in soup.findAll("mention"):
+        for mention in soup.find_all("mention"):
             if mention.text == bot_handle:
                 # Remove the bot mention from the outgoing mail content
                 bot_found = True
