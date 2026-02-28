@@ -12,11 +12,11 @@ def _build_logger() -> logging.Logger:
     if log.handlers:
         return log
 
-    fh = logging.FileHandler(
-        config.get("General", "logfile"), mode="a", encoding="utf-8"
-    )
-    fh.setFormatter(fmt)
-    log.addHandler(fh)
+    logfile = config.get("General", "logfile", fallback=None)
+    if logfile:
+        fh = logging.FileHandler(logfile, mode="a", encoding="utf-8")
+        fh.setFormatter(fmt)
+        log.addHandler(fh)
 
     ch = logging.StreamHandler(sys.stdout)
     ch.setFormatter(fmt)
