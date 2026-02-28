@@ -1,5 +1,7 @@
-imap-tools==1.10.0
-requests==2.32.3
-markdownify==1.1.0
-Markdown==3.8
-mail-parser-reply==1.33
+beautifulsoup4==4.14.3
+imap-tools==1.11.1
+mail-parser-reply==1.36
+Markdown==3.10.2
+markdownify==1.2.2
+requests==2.32.5
+urllib3==2.6.3

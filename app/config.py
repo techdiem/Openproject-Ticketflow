@@ -1,4 +1,5 @@
 import configparser
+from pathlib import Path
 
 config = configparser.ConfigParser()
-config.read("settings.conf", "UTF-8")
+config.read(Path(__file__).parent / "settings.conf", encoding="UTF-8")
