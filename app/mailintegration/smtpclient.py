@@ -1,4 +1,5 @@
 """SMTP client – sends e-mails via the configured mail server."""
+import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from config import config
@@ -19,7 +20,7 @@ class SMTPClient:
         content_html: str = "",
     ) -> None:
         if not recipient:
-            logger.info("Keine Mailadresse im Arbeitspaket hinterlegt – Mail wird nicht gesendet.")
+            logger.info("No mail address stored in work package – mail will not be sent.")
             return
 
         msg = MIMEMultipart("alternative")
@@ -43,7 +44,7 @@ class SMTPClient:
         try:
             with SMTP(server, port) as smtp:
                 if encryption == "starttls":
-                    smtp.starttls()
+                    smtp.starttls(context=ssl.create_default_context())
                 if user:
                     smtp.login(user, password)
                 smtp.sendmail(
@@ -51,6 +52,5 @@ class SMTPClient:
                     recipient,
                     msg.as_string(),
                 )
-                smtp.quit()
         except Exception as exc:
             raise IOError(f"Error sending mail: {exc}") from exc

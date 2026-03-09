@@ -34,7 +34,7 @@ class MailProcess:
         if mail.text_html:
             bodies["html"] = mail.text_html
         if not bodies:
-            bodies["textile"] = "Kein Text"
+            bodies["textile"] = "No content"
 
         # Prefer HTML body for whitelisted senders or when no plain text is available
         if (len(bodies) == 2 and mail.sender.email in html_to_md_addresses) or (
