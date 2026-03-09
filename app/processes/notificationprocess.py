@@ -4,7 +4,7 @@ from string import Template
 from bs4 import BeautifulSoup
 from markdown import markdown
 
-from config import config
+from config import config, get_html_template
 from mailintegration.smtpclient import SMTPClient
 from logger import logger
 from openproject.activity import Activity
@@ -35,7 +35,7 @@ class NotificationProcess:
         """Build subject / plain / HTML for a comment notification mail."""
         tmpl_sub = config.get("Templates", "commentmail_subject")
         tmpl_plain = config.get("Templates", "commentmail_plain")
-        tmpl_html = config.get("Templates", "commentmail_html").replace("\n", "")
+        tmpl_html = get_html_template("commentmail")
 
         if not tmpl_plain and not tmpl_html:
             return None
@@ -61,7 +61,7 @@ class NotificationProcess:
         """Build subject / plain / HTML for a status-change notification mail."""
         tmpl_sub = config.get("Templates", "statusmail_subject")
         tmpl_plain = config.get("Templates", "statusmail_plain")
-        tmpl_html = config.get("Templates", "statusmail_html").replace("\n", "")
+        tmpl_html = get_html_template("statusmail")
 
         if not tmpl_plain and not tmpl_html:
             return None

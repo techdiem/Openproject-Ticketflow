@@ -6,7 +6,7 @@ from string import Template
 
 from mailparser_reply import EmailReplyParser
 
-from config import config
+from config import config, get_html_template
 from mailintegration.imapclient import IMAPClient
 from mailintegration.smtpclient import SMTPClient
 from logger import logger
@@ -49,7 +49,7 @@ class MailProcess:
         """Build subject / plain / HTML for the new-ticket confirmation mail."""
         tmpl_sub = config.get("Templates", "newticket_subject")
         tmpl_plain = config.get("Templates", "newticket_plain")
-        tmpl_html = config.get("Templates", "newticket_html")
+        tmpl_html = get_html_template("newticket")
 
         if not tmpl_plain and not tmpl_html:
             return None
