@@ -54,7 +54,7 @@ class IMAPClient:
                 len(msg.text or msg.html or ""),
                 len(msg.attachments),
             )
-            subject = msg.subject or "No subject"
+            subject = msg.subject or "Kein Titel"
             mails.append(
                 MailIntern(
                     uid=msg.uid,
