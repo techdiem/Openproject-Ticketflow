@@ -156,7 +156,15 @@ class MailProcess:
 
         # Strip quoted / forwarded content from the reply
         parsed = EmailReplyParser(languages=["en", "de"]).read(text=mail.text_plain)
-        comment_text = f"_Reply from {mail.sender.full}:_\n{parsed.latest_reply}\n"
+        reply_body = parsed.latest_reply
+        use_clean_body = config.getboolean("Workflow", "clean_mail_body_comments", fallback=False)
+        replies = getattr(parsed, "replies", None)
+        if replies and len(replies) > 0 and use_clean_body:
+            first_reply_body = getattr(replies[0], "body", None)
+            if first_reply_body:
+                reply_body = first_reply_body
+
+        comment_text = f"_Reply from {mail.sender.full}:_\n{reply_body}\n"
         comment_text += self._upload_attachments(ticket, mail)
 
         # Reopen the ticket if it is currently in a closed state
