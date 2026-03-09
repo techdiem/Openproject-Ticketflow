@@ -31,6 +31,10 @@ class Notification:
             "/api/v3/notifications?offset=1&pageSize=100",
             params=parameters,
         )
+        if result.status_code != 200:
+            raise IOError(
+                f"Failed to fetch notifications: HTTP {result.status_code} – {result.text}"
+            )
         data: dict = json.loads(result.content)
         notifications: list[Notification] = []
         if data["count"] > 0:
