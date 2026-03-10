@@ -1,5 +1,5 @@
 # OpenProject Ticketflow
-OpenProject mail bridge for use as a support ticket application.
+OpenProject mail bridge to use a project as a support ticket application.
 
 - Create OpenProject work packages from mails fetched via IMAP
 - Send mail notifications on ticket creation or status change
@@ -15,10 +15,10 @@ Tested on Debian 13, Python 3.14, OpenProject 17.
 A ready-to-use [`docker-compose.yaml`](docker-compose.yaml) is provided.
 
 1. Place your `settings.conf` and the mail templates in a local `config/` directory (see [Configuration](#configuration) below).
-2. Build the image and start the container:
+2. Load the image and start the container:
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
 The container runs as an unprivileged user, mounts the config directory read-only, and drops all Linux capabilities by default.
@@ -33,7 +33,8 @@ source venv/bin/activate
 pip install -r app/requirements.txt
 
 # Run the application
-python app/ticketflow.py
+cd app
+python ticketflow.py
 ```
 
 #### Logfile
@@ -59,8 +60,8 @@ After=network.target
 [Service]
 Type=simple
 User=ticketflow
-WorkingDirectory=/opt/ticketflow
-ExecStart=/opt/ticketflow/venv/bin/python app/ticketflow.py
+WorkingDirectory=/opt/ticketflow/app
+ExecStart=/opt/ticketflow/venv/bin/python ticketflow.py
 Restart=on-failure
 
 [Install]

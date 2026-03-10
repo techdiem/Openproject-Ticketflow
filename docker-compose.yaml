@@ -1,7 +1,7 @@
 services:
   ticketflow:
     container_name: ticketflow
-    image: ticketflow:latest
+    image: ghcr.io/techdiem/openproject-ticketflow:latest
     restart: unless-stopped
     read_only: true
     volumes:
