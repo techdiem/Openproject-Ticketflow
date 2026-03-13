@@ -89,6 +89,12 @@ To obtain the `api_key`, log in to OpenProject with the bot user, go to **My Acc
 
 The `botuser_handle` can be determined by trying to mention the bot user in a work package comment field from another account.
 
+### OpenProject bot user settings
+It is necessary to configure the notification settings of the bot user for comment-to-mail and status-change workflows to work.
+Switch to account settings -> notification settings and enable new work packages, status changes and all new comments for all projects:
+
+![Notification settings of the bot user](docs/notification_settings.png)
+
 ### Mail templates
 
 The HTML mail templates for the three notification types are located in the `config/` directory:
