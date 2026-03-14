@@ -1,78 +1,17 @@
 """NotificationProcess – processes OpenProject notifications and dispatches e-mails."""
-from string import Template
-
 from bs4 import BeautifulSoup
 from markdown import markdown
 
-from config import config, get_html_template
-from mailintegration.smtpclient import SMTPClient
+from config import config
 from logger import logger
 from openproject.activity import Activity
 from openproject.comment import Comment
 from openproject.notification import Notification
 from openproject.workpackage import Workpackage
+from processes.ticketmails import send_comment_mail, send_new_ticket_mail, send_status_mail
 
 
 class NotificationProcess:
-    @staticmethod
-    def _render_template(
-        subject_tmpl: str,
-        plain_tmpl: str,
-        html_tmpl: str,
-        substitution: dict,
-    ) -> tuple[str, str, str]:
-        """Apply substitutions to all template strings"""
-        return (
-            Template(subject_tmpl).safe_substitute(substitution),
-            Template(plain_tmpl).safe_substitute(substitution) if plain_tmpl else "",
-            Template(html_tmpl).safe_substitute(substitution) if html_tmpl else "",
-        )
-
-    @staticmethod
-    def _template_comment_mail(
-        opid: str, subject: str, content: str, actor: str
-    ) -> tuple[str, str, str] | None:
-        """Build subject / plain / HTML for a comment notification mail."""
-        tmpl_sub = config.get("Templates", "commentmail_subject")
-        tmpl_plain = config.get("Templates", "commentmail_plain")
-        tmpl_html = get_html_template("commentmail")
-
-        if not tmpl_plain and not tmpl_html:
-            return None
-
-        # Extract plain text from HTML content for the plain-text part
-        plain_content = BeautifulSoup(content, "html.parser").get_text()
-
-        subs = {"opid": opid, "subject": subject, "content": content, "actor": actor}
-        # Plain part uses extracted text instead of raw HTML
-        tmpl_plain_filled = Template(tmpl_plain).safe_substitute(
-            {**subs, "content": plain_content}
-        )
-        return (
-            Template(tmpl_sub).safe_substitute(subs),
-            tmpl_plain_filled,
-            Template(tmpl_html).safe_substitute(subs) if tmpl_html else "",
-        )
-
-    @staticmethod
-    def _template_status_mail(
-        opid: str, subject: str, statuschange: str
-    ) -> tuple[str, str, str] | None:
-        """Build subject / plain / HTML for a status-change notification mail."""
-        tmpl_sub = config.get("Templates", "statusmail_subject")
-        tmpl_plain = config.get("Templates", "statusmail_plain")
-        tmpl_html = get_html_template("statusmail")
-
-        if not tmpl_plain and not tmpl_html:
-            return None
-
-        subs = {"opid": opid, "subject": subject, "statuschange": statuschange}
-        return (
-            Template(tmpl_sub).safe_substitute(subs),
-            Template(tmpl_plain).safe_substitute(subs) if tmpl_plain else "",
-            Template(tmpl_html).safe_substitute(subs) if tmpl_html else "",
-        )
-
     # ------------------------------------------------------------------
     # Notification handlers
     # ------------------------------------------------------------------
@@ -80,39 +19,15 @@ class NotificationProcess:
     def _process_bot_mention(self, notification: Notification, content_cleaned: str) -> None:
         """Send the cleaned comment as an e-mail to the ticket's client address."""
         ticket = Workpackage.get_by_id(notification.resource_id)
-        opid = f"[OP#{ticket.id}]"
-        logger.info("Sending comment mail with ticket code %s.", opid)
-        result = self._template_comment_mail(
-            opid, ticket.title, content_cleaned, notification.actor["title"]
-        )
-        if result is None:
-            logger.info("No comment mail template configured – skipping.")
-            return
-        subject, body_plain, body_html = result
-        SMTPClient.send_mail(
-            ticket.clientmail,
-            subject,
-            notification.actor["title"],
-            content_html=body_html,
-            content_plain=body_plain,
+        send_comment_mail(
+            ticket.clientmail, ticket.id, ticket.title, content_cleaned, notification.actor["title"]
         )
 
     def _process_status_change(self, notification: Notification, statusmsg: str) -> None:
         """Send a status-change e-mail to the ticket's client address."""
         ticket = Workpackage.get_by_id(notification.resource_id)
-        opid = f"[OP#{ticket.id}]"
-        logger.info("Sending status mail with ticket code %s.", opid)
-        result = self._template_status_mail(opid, ticket.title, statusmsg)
-        if result is None:
-            logger.info("No status mail template configured – skipping.")
-            return
-        subject, body_plain, body_html = result
-        SMTPClient.send_mail(
-            ticket.clientmail,
-            subject,
-            notification.actor["title"],
-            content_html=body_html,
-            content_plain=body_plain,
+        send_status_mail(
+            ticket.clientmail, ticket.id, ticket.title, statusmsg, notification.actor["title"]
         )
 
     def _handle_comment(self, notification: Notification, activity: Activity) -> None:
@@ -163,6 +78,29 @@ class NotificationProcess:
                 return
         logger.info("No status change found in activity.")
 
+    def _handle_manual_ticket_creation(self, notification: Notification) -> None:
+        if notification.reason != "created":
+            logger.info("Notification reason indicates no ticket creation – skipping.")
+            return
+        else:
+            logger.info("New ticket creation detected – fetching ticket …")
+        ticket = Workpackage.get_by_id(notification.resource_id)
+        if ticket is None:
+            logger.info("Could not fetch ticket for created notification – skipping.")
+            return
+        if not ticket.clientmail:
+            logger.info("Created ticket has no client mail – skipping.")
+            return
+        try:
+            send_new_ticket_mail(ticket.id, ticket.title, ticket.clientmail)
+            return True
+        except Exception as exc:
+            logger.error(
+                "Could not send new-ticket confirmation mail for ticket %s: %s", ticket.id, exc
+            )
+        return False
+
+
     # ------------------------------------------------------------------
     # Entry point
     # ------------------------------------------------------------------
@@ -174,9 +112,12 @@ class NotificationProcess:
             logger.info("New notification, ID: %s.", notify.id)
             try:
                 activity = Activity.get_by_id(notify.activity_id)
+                newticket = False
                 if config.getboolean("Workflow", "comment_to_mail"):
                     self._handle_comment(notify, activity)
-                if config.getboolean("Workflow", "status_mail_info"):
+                if config.getboolean("Workflow", "manual_ticket_mail_info"):
+                    newticket = self._handle_manual_ticket_creation(notify)
+                if config.getboolean("Workflow", "status_mail_info") and not newticket:
                     self._handle_status_change(notify, activity)
             except Exception as exc:
                 logger.error("Failed to handle notification %s: %s", notify.id, exc)

@@ -2,18 +2,16 @@
 import json
 import re
 import threading
-from string import Template
-
 from mailparser_reply import EmailReplyParser
 
-from config import config, get_html_template
+from config import config
 from mailintegration.imapclient import IMAPClient
-from mailintegration.smtpclient import SMTPClient
 from logger import logger
 from model.mail_intern import MailIntern
 from model.work_package_text import WorkPackageText
 from openproject.comment import Comment
 from openproject.workpackage import Workpackage
+from processes.ticketmails import send_new_ticket_mail
 
 # Reconnect wait in seconds after an IDLE connection error
 _IDLE_RECONNECT_DELAY = 30.0
@@ -44,38 +42,6 @@ class MailProcess:
 
         return WorkPackageText(bodies["textile"], "textile")
 
-    @staticmethod
-    def _template_new_ticket(opid: str, subject: str) -> tuple[str, str, str] | None:
-        """Build subject / plain / HTML for the new-ticket confirmation mail."""
-        tmpl_sub = config.get("Templates", "newticket_subject")
-        tmpl_plain = config.get("Templates", "newticket_plain")
-        tmpl_html = get_html_template("newticket")
-
-        if not tmpl_plain and not tmpl_html:
-            return None
-
-        subs = {"opid": opid, "subject": subject}
-        return (
-            Template(tmpl_sub).safe_substitute(subs),
-            Template(tmpl_plain).safe_substitute(subs) if tmpl_plain else "",
-            Template(tmpl_html).safe_substitute(subs) if tmpl_html else "",
-        )
-
-    def _send_new_ticket_mail(self, ticket_id: int, title: str, recipient: str) -> None:
-        """Send a confirmation e-mail to the original sender after ticket creation."""
-        opid = f"[OP#{ticket_id}]"
-        result = self._template_new_ticket(opid, title)
-        if result is None:
-            return
-        subject, body_plain, body_html = result
-        SMTPClient.send_mail(
-            recipient,
-            subject,
-            sender_name=config.get("Workflow", "new_ticket_sendername"),
-            content_plain=body_plain,
-            content_html=body_html,
-        )
-
     def _create_workpackage(self, mail: MailIntern) -> None:
         """Create a new work package from an incoming e-mail."""
         wpcontent = self._mail_content_to_workpackage(mail)
@@ -104,7 +70,7 @@ class MailProcess:
         # and the source mail must be deleted to avoid duplicate tickets.
         if config.getboolean("Workflow", "new_ticket_mail_info"):
             try:
-                self._send_new_ticket_mail(ticket.id, ticket.title, mail.sender.email)
+                send_new_ticket_mail(ticket.id, ticket.title, mail.sender.email)
             except Exception as exc:
                 logger.error(
                     "Work package '%s' (ID %s) was created but the confirmation mail "
