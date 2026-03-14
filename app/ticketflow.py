@@ -1,4 +1,4 @@
-# Version: 2.0.0
+# Version: 2.1.0
 """
 OpenProject-Ticketflow
 Bridge between mail and OpenProject API, to use work packages like a ticket system.
