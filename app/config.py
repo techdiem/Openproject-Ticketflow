@@ -1,9 +1,11 @@
-import configparser
 import sys
 from pathlib import Path
+import importlib.util
+from commentedconfigparser import CommentedConfigParser
 
 LOCAL_PATH = Path(__file__).parent / "config"
 CONTAINER_PATH = Path("/config")
+CURRENT_CONFIG_VERSION = 2
 
 
 def _find_config() -> Path | None:
@@ -30,10 +32,47 @@ def get_html_template(name: str) -> str | None:
     return None
 
 
+def run_migration_module(config_parser: CommentedConfigParser, migration_path: Path) -> None:
+    """Load and run a migration module from a file path.
+
+    The module must expose a `migrate(config_parser)` function.
+    """
+    spec = importlib.util.spec_from_file_location(migration_path.stem, migration_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load migration module from {migration_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    if not hasattr(module, "migrate"):
+        raise AttributeError(f"Migration {migration_path} has no migrate(config) function")
+    module.migrate(config_parser)
+
+
 _config_dir = _find_config() / "settings.conf"
 if not _config_dir.exists():
     raise FileNotFoundError(
         f"No configuration directory found. Expected {LOCAL_PATH} or {CONTAINER_PATH}."
     )
-config = configparser.ConfigParser()
+
+# Load configuration
+config = CommentedConfigParser()
 config.read(_config_dir, encoding="UTF-8")
+
+try:
+    CURRENT_VERSION = int(config.get("General", "config_version", fallback="1"))
+except ValueError:
+    CURRENT_VERSION = 1
+
+if CURRENT_VERSION < CURRENT_CONFIG_VERSION:
+    print(f"Config version {CURRENT_VERSION} detected. Migrating to version {CURRENT_CONFIG_VERSION}.")
+    migrations_dir = Path(__file__).parent / "migrations"
+    for v in range(CURRENT_VERSION, CURRENT_CONFIG_VERSION):
+        print(f"Running migration to version {v + 1}.")
+        migration_file = migrations_dir / f"migration_{v+1}.py"
+        if not migration_file.exists():
+            raise FileNotFoundError(f"Missing migration file: {migration_file}")
+        run_migration_module(config, migration_file)
+        # update version in config and persist after each migration
+        config.set("General", "config_version", str(v + 1))
+        with _config_dir.open("w", encoding="UTF-8") as f:
+            config.write(f)
+        print(f"Migration to version {v + 1} completed.")

@@ -5,3 +5,4 @@ Markdown==3.10.2
 markdownify==1.2.2
 requests==2.32.5
 urllib3==2.6.3
+commented-configparser==3.0.0
