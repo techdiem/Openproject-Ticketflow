@@ -19,8 +19,8 @@ _IDLE_RECONNECT_DELAY = 30.0
 
 
 class MailProcess:
-    # Regex matching ticket IDs in mail subjects, e.g. "[OP#1234]" or "[OP#ABC-1234]" (classic id or display_id)
-    _OPID_REGEX = r"\[OP#([A-Za-z0-9]+-\d+|\d+)\]"
+    # Regex matching ticket IDs in mail subjects (classic id or display_id)
+    _OPID_REGEX = r"\[OP#([A-Z0-9_]{1,10}-\d+|\d+)\]"
 
     @staticmethod
     def _mail_content_to_workpackage(mail: MailIntern) -> WorkPackageText:
