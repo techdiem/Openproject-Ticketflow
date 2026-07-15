@@ -1,7 +1,9 @@
 import json
 from markdownify import markdownify as md
 from config import config
+from openproject.errors import AttachmentUploadError, WorkpackageCreationError
 from openproject.client import op_client
+from logger import logger
 
 
 class Workpackage:
@@ -14,6 +16,7 @@ class Workpackage:
         ticket_id: int | None = None,
         lock_version: int | None = None,
         status: str | None = None,
+        display_id: str | None = None,
     ) -> None:
         self.id = ticket_id
         self.title = "No title" if title == "" else title
@@ -22,10 +25,18 @@ class Workpackage:
         self.clientmail = clientmail
         self.lock_version = lock_version
         self.status = status
+        self._set_display_id(display_id)
 
         # Determine optional subfolder prefix for href paths (e.g. /openproject in base URL)
         url_parts = config.get("OpenProject", "base_url").split("/")
         self._install_subfolder = f"/{url_parts[3]}" if len(url_parts) > 3 else ""
+
+
+    def _set_display_id(self, display_id: str) -> None:
+        if display_id is not None and config.getboolean("OpenProject", "use_display_id", fallback=True):
+            self.display_id = display_id
+        else:
+            self.display_id = self.id
 
     # ------------------------------------------------------------------
     # Write operations
@@ -62,6 +73,23 @@ class Workpackage:
             headers=headers,
             data=json.dumps(parameters),
         )
+
+        # verify ticket creation ---
+        # Raises so the caller skips mail deletion when the API rejected the request.
+        try:
+            data = json.loads(result.content)
+        except Exception as exc:
+            logger.error(
+                "Failed to create work package '%s': %s\n%s",
+                self.title,
+                result.content,
+                exc,
+            )
+            raise WorkpackageCreationError("Work package creation failed.") from exc
+        else:
+            self.id = data["id"]
+            self._set_display_id(data["displayId"] if "displayId" in data else None)
+
         return result
 
     def add_attachment(self, filename: str, filecontent: bytes) -> None:
@@ -70,10 +98,15 @@ class Workpackage:
             "file": ("attachment", filecontent),
             "metadata": (None, json.dumps(payload)),
         }
-        return op_client.post(
-            f"/api/v3/work_packages/{self.id}/attachments",
-            files=meta,
-        )
+        try:
+            return op_client.post(
+                f"/api/v3/work_packages/{self.id}/attachments",
+                files=meta,
+            )
+        except Exception as exc:
+            raise AttachmentUploadError(
+                f"Failed to upload attachment '{filename}' for work package {self.id}."
+            ) from exc
 
     def set_status(self, status_id: int | str) -> None:
         headers = {"Content-Type": "application/json"}
@@ -108,4 +141,5 @@ class Workpackage:
             ticket_id=data["id"],
             lock_version=data["lockVersion"],
             status=data["_links"]["status"]["href"].split("/")[-1],
+            display_id=data["displayId"] if "displayId" in data else None
         )

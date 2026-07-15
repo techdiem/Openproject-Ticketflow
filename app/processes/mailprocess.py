@@ -9,6 +9,7 @@ from mailintegration.imapclient import IMAPClient
 from logger import logger
 from model.mail_intern import MailIntern
 from model.work_package_text import WorkPackageText
+from openproject.errors import AttachmentUploadError, WorkpackageCreationError
 from openproject.comment import Comment
 from openproject.workpackage import Workpackage
 from processes.ticketmails import send_new_ticket_mail
@@ -18,13 +19,15 @@ _IDLE_RECONNECT_DELAY = 30.0
 
 
 class MailProcess:
-    _OPID_REGEX = r"\[OP#(\d+)\]"
+    # Regex matching ticket IDs in mail subjects, e.g. "[OP#1234]" or "[OP#ABC-1234]" (classic id or display_id)
+    _OPID_REGEX = r"\[OP#([A-Za-z0-9]+-\d+|\d+)\]"
 
     @staticmethod
     def _mail_content_to_workpackage(mail: MailIntern) -> WorkPackageText:
         """Select the best text body from a mail and return it as a WorkPackageText."""
         # Addresses whose HTML body should be converted to Markdown instead of using plain text
-        html_to_md_addresses: list[str] = json.loads(config.get("Workflow", "mail_html_to_md"))
+        whitelist = config.get("Workflow", "mail_html_to_md")
+        html_to_md_addresses: list[str] = json.loads(whitelist)
 
         bodies: dict[str, str] = {}
         if mail.text_plain:
@@ -48,39 +51,26 @@ class MailProcess:
         # Prepend sender information as a note inside the description
         message = f"_Sender: {mail.sender.full}_\n{wpcontent.content}"
         ticket = Workpackage(mail.subject, message, mail.sender.email, wpcontent.format)
-        result = ticket.publish()
+        ticket.publish()
 
-        # --- Step 1: verify ticket creation ---
-        # Raises so the caller skips mail deletion when the API rejected the request.
-        try:
-            ticket.id = json.loads(result.content)["id"]
-        except Exception as exc:
-            logger.error(
-                "Failed to create work package '%s': %s\n%s",
-                ticket.title,
-                result.content,
-                exc,
-            )
-            raise RuntimeError("Work package creation failed.") from exc
+        logger.info("Work package '%s' created, ID %s, display_Id %s.", ticket.title, ticket.id, ticket.display_id)
 
-        logger.info("Work package '%s' created, ID %s.", ticket.title, ticket.id)
-
-        # --- Step 2: send confirmation mail ---
+        # send confirmation mail ---
         # A failure here is logged but does NOT propagate – the ticket already exists
         # and the source mail must be deleted to avoid duplicate tickets.
         if config.getboolean("Workflow", "new_ticket_mail_info"):
             try:
-                send_new_ticket_mail(ticket.id, ticket.title, mail.sender.email)
+                send_new_ticket_mail(ticket.display_id, ticket.title, mail.sender.email)
             except Exception as exc:
                 logger.error(
                     "Work package '%s' (ID %s) was created but the confirmation mail "
                     "could not be sent: %s",
                     ticket.title,
-                    ticket.id,
+                    ticket.display_id,
                     exc,
                 )
 
-        # --- Step 3: upload attachments ---
+        # upload attachments ---
         self._upload_attachments(ticket, mail)
 
     def _upload_attachments(self, ticket: Workpackage, mail: MailIntern) -> str:
@@ -93,11 +83,13 @@ class MailProcess:
             try:
                 ticket.add_attachment(attachment.filename, attachment.payload)
                 attachment_notes += f"\n_Attachment: {attachment.filename}_"
-            except Exception as exc:
+            except AttachmentUploadError as exc:
                 logger.error(
-                    "Failed to upload attachment '%s': %s", attachment.filename, exc
+                    "Failed to upload attachment '%s' for ticket '%s': %s",
+                    attachment.filename,
+                    ticket.id,
+                    exc,
                 )
-                raise RuntimeError("Attachment upload failed.") from exc
         return attachment_notes
 
     # ------------------------------------------------------------------
@@ -156,6 +148,8 @@ class MailProcess:
                     self._new_comment(mail, opid)
                 else:
                     self._create_workpackage(mail)
+            except WorkpackageCreationError as exc:
+                logger.error("Failed to create work package for mail '%s': %s", mail.subject, exc)
             except Exception as exc:
                 logger.error("Failed to process mail '%s': %s", mail.subject, exc)
             else:

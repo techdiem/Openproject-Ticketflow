@@ -20,14 +20,14 @@ class NotificationProcess:
         """Send the cleaned comment as an e-mail to the ticket's client address."""
         ticket = Workpackage.get_by_id(notification.resource_id)
         send_comment_mail(
-            ticket.clientmail, ticket.id, ticket.title, content_cleaned, notification.actor["title"]
+            ticket.clientmail, ticket.display_id, ticket.title, content_cleaned, notification.actor["title"]
         )
 
     def _process_status_change(self, notification: Notification, statusmsg: str) -> None:
         """Send a status-change e-mail to the ticket's client address."""
         ticket = Workpackage.get_by_id(notification.resource_id)
         send_status_mail(
-            ticket.clientmail, ticket.id, ticket.title, statusmsg, notification.actor["title"]
+            ticket.clientmail, ticket.display_id, ticket.title, statusmsg, notification.actor["title"]
         )
 
     def _handle_comment(self, notification: Notification, activity: Activity) -> None:
@@ -92,11 +92,11 @@ class NotificationProcess:
             logger.info("Created ticket has no client mail – skipping.")
             return
         try:
-            send_new_ticket_mail(ticket.id, ticket.title, ticket.clientmail)
+            send_new_ticket_mail(ticket.display_id, ticket.title, ticket.clientmail)
             return True
         except Exception as exc:
             logger.error(
-                "Could not send new-ticket confirmation mail for ticket %s: %s", ticket.id, exc
+                "Could not send new-ticket confirmation mail for ticket %s: %s", ticket.display_id, exc
             )
         return False
 
