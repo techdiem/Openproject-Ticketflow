@@ -21,7 +21,8 @@ A ready-to-use [`docker-compose.yaml`](docker-compose.yaml) is provided.
 docker compose up -d
 ```
 
-The container runs as an unprivileged user, mounts the config directory read-only, and drops all Linux capabilities by default.
+The container runs as an unprivileged user and drops all Linux capabilities by default.
+Write permissions for the config folder are needed to apply config migrations on update.
 
 ### Option B: Manual installation with venv
 ```bash

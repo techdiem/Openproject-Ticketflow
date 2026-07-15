@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     read_only: true
     volumes:
-      - ./config:/config:ro
+      - ./config:/config
     cap_drop:
       - ALL
     security_opt:

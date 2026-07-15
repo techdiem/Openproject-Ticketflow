@@ -5,11 +5,13 @@ from commentedconfigparser import CommentedConfigParser
 # Adds the following to the OpenProject-section:
 
 # #Use displayID instead of internal ID for ticket references in mails, if available (OpenProject 17.5+) (true | false)
-# use_displayID = true
+# use_display_id = true
 
 # --------------------------
 
 def migrate(config: CommentedConfigParser) -> None:
+    config.set("General", "config_version", "2")
+
     section = "OpenProject"
     if not config.has_section(section):
         config.add_section(section)
@@ -20,6 +22,6 @@ def migrate(config: CommentedConfigParser) -> None:
     )
     if not config.has_option(section, comment_key):
         config.set(section, comment_key, comment_value)
-    
-    if not config.has_option(section, "use_displayID"):
-        config.set(section, "use_displayID", "true")
+
+    if not config.has_option(section, "use_display_id"):
+        config.set(section, "use_display_id", "true")

@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 import importlib.util
+import configparser
 from commentedconfigparser import CommentedConfigParser
 
 LOCAL_PATH = Path(__file__).parent / "config"
@@ -27,8 +28,8 @@ def get_html_template(name: str) -> str | None:
         return None
     tmpl_path = config_dir / f"{name}.html"
     if tmpl_path.exists():
-        with tmpl_path.open(encoding="utf-8") as f:
-            return f.read()
+        with tmpl_path.open(encoding="utf-8") as template_file:
+            return template_file.read()
     return None
 
 
@@ -54,7 +55,7 @@ if not _config_dir.exists():
     )
 
 # Load configuration
-config = CommentedConfigParser()
+config = configparser.ConfigParser()
 config.read(_config_dir, encoding="UTF-8")
 
 try:
@@ -65,14 +66,24 @@ except ValueError:
 if CURRENT_VERSION < CURRENT_CONFIG_VERSION:
     print(f"Config version {CURRENT_VERSION} detected. Migrating to version {CURRENT_CONFIG_VERSION}.")
     migrations_dir = Path(__file__).parent / "migrations"
+
+    # Use a separate CommentedConfigParser instance for migration to avoid losing comments
+    # Always reading using this does not work with array like syntax at mail_html_to_md
+    config_migrator = CommentedConfigParser()
+    config_migrator.read(_config_dir, encoding="UTF-8")
+
     for v in range(CURRENT_VERSION, CURRENT_CONFIG_VERSION):
         print(f"Running migration to version {v + 1}.")
         migration_file = migrations_dir / f"migration_{v+1}.py"
         if not migration_file.exists():
             raise FileNotFoundError(f"Missing migration file: {migration_file}")
-        run_migration_module(config, migration_file)
+        run_migration_module(config_migrator, migration_file)
         # update version in config and persist after each migration
-        config.set("General", "config_version", str(v + 1))
+        config_migrator.set("General", "config_version", str(v + 1))
         with _config_dir.open("w", encoding="UTF-8") as f:
-            config.write(f)
+            config_migrator.write(f)
         print(f"Migration to version {v + 1} completed.")
+
+    del config_migrator
+    # Refresh the config object to reflect the migrated settings
+    config.read(_config_dir, encoding="UTF-8")
